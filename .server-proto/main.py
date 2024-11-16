@@ -25,14 +25,14 @@ app = FastAPI(lifespan=lifespan)
 def create_item(item: models.Item):
     """Create a new item."""
     try:
-        cursor = database.database.conn.cursor()
+        cursor = database.conn.cursor()
         cursor.execute(
             "INSERT INTO items (name, description, price, quantity) VALUES (%s, %s, %s, %s)",
             (item.name, item.description, item.price, item.quantity),
         )
-        database.database.conn.commit()
-        logger.info(f"Item created: {item.dict()}")
-        return models.database.ItemResponse(id=cursor.lastrowid, **item.dict())
+        database.conn.commit()
+        logger.info(f"Item created: {item.model_dump()}")
+        return models.ItemResponse(id=cursor.lastrowid, **item.model_dump())
     except Exception as e:
         logger.error(f"Error creating item: {e}")
         raise HTTPException(status_code=500, detail="Error creating item.")
@@ -42,7 +42,7 @@ def create_item(item: models.Item):
 def get_items():
     """Retrieve all items."""
     try:
-        cursor = database.database.conn.cursor(dictionary=True)
+        cursor = database.conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM items")
         rows = cursor.fetchall()
         logger.info(f"Retrieved {len(rows)} items.")
@@ -56,7 +56,7 @@ def get_items():
 def get_item(item_id: int):
     """Retrieve a single item by ID."""
     try:
-        cursor = database.database.conn.cursor(dictionary=True)
+        cursor = database.conn.cursor(model_dumpionary=True)
         cursor.execute("SELECT * FROM items WHERE id = %s", (item_id,))
         row = cursor.fetchone()
         if not row:
@@ -82,8 +82,8 @@ def update_item(item_id: int, item: models.Item):
         if cursor.rowcount == 0:
             logger.warning(f"Item with ID {item_id} not found for update.")
             raise HTTPException(status_code=404, detail="Item not found")
-        logger.info(f"Updated item {item_id}: {item.dict()}")
-        return database.ItemResponse(id=item_id, **item.dict())
+        logger.info(f"Updated item {item_id}: {item.model_dump()}")
+        return database.ItemResponse(id=item_id, **item.model_dump())
     except Exception as e:
         logger.error(f"Error updating item {item_id}: {e}")
         raise HTTPException(status_code=500, detail="Error updating item.")
