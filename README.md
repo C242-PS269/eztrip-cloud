@@ -44,7 +44,7 @@
 
 <div align=center>
 
-| Name  | Bangkit ID | Role | University |
+| Name  | Bangkit ID | Roles | University |
 |---|---|---|---|
 | Naufal Rahfi Anugerah | C254B4KY3294 | Project Lead, Cloud Architect & BackEnd Engineer | Universitas Mercu Buana |
 | Royan Sabila Rosyad Wahyudi | C550B4NY3971 | Project Manager, DevOps Engineer & BackEnd Engineer | Universitas Islam Negeri Syarif Hidayatullah Jakarta |
