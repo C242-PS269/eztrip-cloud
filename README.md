@@ -32,7 +32,7 @@
 - Server Prototype
 - Machine Learning Services
 - User Data Services
-- Gateaway Services
+- Gateway Services
 
 #### API Documentations
 
@@ -42,7 +42,7 @@
 |---|---|---|
 | 1 | Machine Learning Services | [Click here!]() |
 | 2 | User Data Services | [Click here!]() |
-| 3 | Gateaway Services | [Click here!]() |
+| 3 | Gateway Services | [Click here!]() |
 
 </div>
 
