@@ -1,6 +1,3 @@
-
-
-
 <div align=center>
     <img src="https://github.com/user-attachments/assets/2f45acea-59d4-4d0c-a3c8-e73d17c3ed53"/>
 </div>
@@ -12,13 +9,15 @@
     <img src="https://img.shields.io/badge/Google_Cloud-%234285F4.svg?&logo=google-cloud&logoColor=white"/>
     <img src="https://img.shields.io/badge/FastAPI-005571?&logo=fastapi"/>
     <img src="https://img.shields.io/badge/MySQL-4479A1.svg?&logo=mysql&logoColor=white"/>
-    <h3 align=center>Back-End Servers and APIs Documentation</h3>
+    <h3 align=center>Back-End Servers and API Services Documentation</h3>
 <div>
 
 #### Repository Overview
 
 <p align=justify>
-
+This repository contains a collection of backend servers designed for various specific functions in a single ecosystem for the EzTrip application. 
+Each server has a specific role and is documented separately in this repository. The purpose of this repository is to provide an organized 
+structure for the development, maintenance, and documentation of all EzTrip servers.
 </p>
 
 #### Tech Stacks
@@ -34,17 +33,17 @@
 - User Data Services
 - Gateway Services
 
-#### API Documentations
+#### Servers & API Services Documentation
 
-<div align=center>
+<center>
 
-|No. | Services | Links |
-|---|---|---|
-| 1 | Machine Learning Services | [Click here!]() |
-| 2 | User Data Services | [Click here!]() |
-| 3 | Gateway Services | [Click here!]() |
+|No. | Services | Description | Links |
+|---|---|---|---|
+| 1 | Machine Learning Model Server & API Services | This server contains APIs for using machine learning models. | [Click here!]() |
+| 2 | Data Server & API Services | This server is used to manage user data and provide APIs for data-related operations. | [Click here!]() |
+| 3 | Gateway Server & API Services | This server acts as the main gateway to connect and manage all APIs from other servers. | [Click here!]() |
 
-</div>
+</center>
 
 #### Deployment
 
