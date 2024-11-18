@@ -60,15 +60,9 @@ There is <b>NO LICENSE</b> available yet as this project is still being used for
 
 #### Disclaimer
 
-<p align=justify>
-This project is currently part of the <a href="https://www.dicoding.com/programs/bangkit">Bangkit Academy led by Google, Tokopedia, Gojek, and Traveloka</a> program and is being developed by our team as part of the Capstone Project.
-
-<p align=justify>
-The primary purpose of this project is to fulfill the requirements of the <b>Bangkit Academy 2024 Batch 2</b> program and to demonstrate the technical and collaborative skills we have acquired during the program.
-</p>
-<p align=justify>
-As such, the project is not yet intended for open-source release or commercial use. All rights and restrictions related to the project remain under the team's discretion until further notice.
-</p>
+- This project is currently part of the <a href="https://www.dicoding.com/programs/bangkit">Bangkit Academy led by Google, Tokopedia, Gojek, and Traveloka</a> program and is being developed by our team as part of the Capstone Project.
+- The primary purpose of this project is to fulfill the requirements of the <b>Bangkit Academy 2024 Batch 2</b> program and to demonstrate the technical and collaborative skills we have acquired during the program.
+- The project is not yet intended for open-source release or commercial use. All rights and restrictions related to the project remain under the team's discretion until further notice.
 
 #### Author
 
