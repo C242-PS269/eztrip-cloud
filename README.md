@@ -1,5 +1,6 @@
 <div align=center>
-    <h3>EzTrip<br>Back-End Servers & API's</h3>
+    <img src="https://github.com/user-attachments/assets/2f45acea-59d4-4d0c-a3c8-e73d17c3ed53"/>
+    <h3>Back-End Servers and APIs Documentation</h3>
 </div>
 
 #### Repository Overview
