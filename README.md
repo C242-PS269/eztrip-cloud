@@ -1,4 +1,5 @@
 <div align=center>
+    <h1>EzTrip: AI Travel Companion App in Your Hand!</h1>
     <img src="https://github.com/user-attachments/assets/2f45acea-59d4-4d0c-a3c8-e73d17c3ed53"/>
 </div>
 <br>
@@ -28,10 +29,51 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 
 #### Project Structures
 
-- Server Prototype
-- Machine Learning Services
-- User Data Services
-- Gateway Services
+1. Prototype Server:
+    - Server using FastAPI:
+      ```
+        .
+        ├── README.md
+        ├── __pycache__
+        │   └── main.cpython-312.pyc
+        ├── app.log
+        ├── config
+        │   ├── __pycache__
+        │   │   ├── database.cpython-312.pyc
+        │   │   ├── logging.cpython-312.pyc
+        │   │   └── models.cpython-312.pyc
+        │   ├── database.py
+        │   ├── logging.py
+        │   └── models.py
+        ├── main.py
+        └── requirements.txt
+      ```
+    - Server using Flask
+      ```
+        .
+        ├── app
+        │   ├── __init__.py
+        │   ├── db.py
+        │   ├── logging.py
+        │   ├── models.py
+        │   ├── routes.py
+        │   ├── schemas.py
+        │   └── services.py
+        ├── requirements.txt
+        └── run.py
+      ```
+2. Machine Learning Services
+```
+N/A
+```
+4. User Data Services
+```
+N/A
+```
+6. Gateway Services
+```
+N/A
+```
 
 #### Servers & API Services Documentation
 
@@ -49,7 +91,7 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 
 - **Environment**: [Google Cloud Platform](https://cloud.google.com)
 - **Server Deployments**: Cloud Run & App Engine
-- **Database Services**: Cloud SQL & Firebase
+- **Database Services**: Cloud SQL & Firebase(Optional)
 - **Storage**: Cloud Storage
 
 #### Contributing
