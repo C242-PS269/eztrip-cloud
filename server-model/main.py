@@ -1,27 +1,30 @@
+import tensorflow as tf
+import numpy as np
 import os
-import dotenv
-import uvicorn
 
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import JSONResponse
 
+from flask import Flask, request, jsonify
 from config import logging
+from dotenv import load_dotenv
 
-# load environment variables
-dotenv.load_dotenv()
-# initialize logging
-logging = logging.log()
+# Load environment variables
+load_dotenv()
 
-# initialize FastAPI app
-app = FastAPI()
+logger = logging.log()
 
-# Root route
-@app.get("/")
-async def read_root():
-    return {
-        "message": "Welcome to the EzTrip ML-Model Server",
-    }
+# Initialize Flask app
+app = Flask(__name__)
 
-# Run the server
-if __name__ == "__main__":
-    uvicorn.run(app, host=os.getenv("SERVER_HOST"), port=os.getenv("SERVER_PORT"))
+# Load the trained TensorFlow model (.h5)
+model = tf.keras.models.load_model(os.getenv('MODEL_PATH'))
+
+# Recompile the model (optional, only if you want to suppress the warning)
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+
+@app.route('/')
+def home():
+    return "TensorFlow Model API is running!"
+
+if __name__ == '__main__':
+    app.run(host=os.getenv('HOST'), port=os.getenv('PORT'))
