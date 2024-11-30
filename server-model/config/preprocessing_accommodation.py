@@ -84,32 +84,21 @@ def accommodation_recommendations(user_input, top_n=5):
     # Preprocess the user input
     user_input_vector = preprocess_user_input(user_input)
 
-    # Predict scores for all data
-    scores = accommodation_recommendation.predict(X)
+    # Predict scores for user input and dataset interaction
+    combined_input = np.concatenate([user_input_vector] * len(X), axis=0)  # Repeat user input
+    scores = accommodation_recommendation.predict(np.hstack((X, combined_input)))
+
+    # Add scores to the dataset
     data['score'] = scores.flatten()
 
-    # Normalize input for filtering
-    user_df = pd.DataFrame([{
-        "price_wna": user_input["max_price"],
-        "rating": user_input["min_rating"]
-    }])
-    normalized_input = scaler.transform(user_df)
-    max_price_scaled, min_rating_scaled = normalized_input[0]
-
-    # Filter data based on user criteria
+    # Filter data based on user's raw criteria
     filtered_data = data[
-        (data['rating'] >= min_rating_scaled) &
-        (data['price_wna'] <= max_price_scaled) &
-        (data['city'] == user_input['city'])
+        (data['rating'] >= user_input["min_rating"]) &
+        (data['price_wna'] <= user_input["max_price"]) &
+        (data['city'] == user_input["city"])
     ]
 
-    # Return original scale for rating and price_wna
-    if not filtered_data.empty:
-        filtered_data[['price_wna', 'rating']] = scaler.inverse_transform(
-            filtered_data[['price_wna', 'rating']]
-        )
-
-    # Get top N recommendations
+    # Get top N recommendations based on score
     if not filtered_data.empty:
         recommendations = filtered_data.nlargest(top_n, 'score')
     else:
