@@ -1,11 +1,12 @@
-import config.tour_preprocessing
+# Import required libraries
+import config.preprocessing_tour
+import config.preprocessing_accommodation
 import config.setup_logging
 import json
 import os
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
-
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +25,7 @@ def get_recommendations():
         user_input = request.get_json()
 
         # Get top 5 recommendations
-        recommendations = config.tour_preprocessing.recommend(user_input)
+        recommendations = config.preprocessing_tour.tour_recommendations(user_input)
 
         if not recommendations.empty:
             # Convert the dataframe to JSON
@@ -40,6 +41,32 @@ def get_recommendations():
             return jsonify({"message": "No recommendations found."}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# API endpoint for accommodations
+@app.route('/accommodations', methods=['POST'])
+def get_accomodations():
+    try:
+        # Get input from the user in JSON format
+        user_input = request.get_json()
 
+        # Get top 5 recommendations
+        recommendations = config.preprocessing_accommodation.accommodation_recommendations(user_input)
+
+        if not recommendations.empty:
+            # Convert the dataframe to JSON
+            result = recommendations.to_dict(orient='records')
+
+            # Pretty print and save to file
+            with open('accomodations.json', 'w') as f:
+                json.dump(result, f, indent=4)  # Pretty print with indentation
+
+            # Return the recommendations in the response
+            return jsonify({"accomodations": result}), 200
+        else:
+            return jsonify({"message": "No accomodations found."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run the Flask app
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'))
