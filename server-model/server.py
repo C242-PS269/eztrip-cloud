@@ -1,6 +1,7 @@
 # Import required libraries
 import config.preprocessing_tour
 import config.preprocessing_accommodation
+import config.preprocessing_culinary
 import config.setup_logging
 import json
 import os
@@ -64,6 +65,28 @@ def get_accomodations():
             return jsonify({"accomodations": result}), 200
         else:
             return jsonify({"message": "No accomodations found."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/culinaries', methods=['POST'])
+def culinaries():
+    try:
+        user_input = request.get_json()
+        if not all(key in user_input for key in ['category', 'city', 'min_rating', 'max_price']):
+            return jsonify({"error": "Missing one or more required fields: 'category', 'city', 'min_rating', 'max_price'"}), 400
+
+        recommendations = config.preprocessing_culinary.culinary_recommendations(user_input)
+        if not recommendations.empty:
+            # Convert the dataframe to JSON
+            result = recommendations.to_dict(orient='records')
+
+            # Pretty print and save to file
+            with open('culinaries.json', 'w') as f:
+                json.dump(result, f, indent=4)  # Pretty print with indentation
+                
+            return jsonify({"culinaries": result}), 200
+        else:
+            return jsonify({"message": "No recommendations found."}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
