@@ -1,7 +1,10 @@
+# Import required libraries
 import tensorflow as tf
+import sqlalchemy as sa
 import pandas as pd
 import numpy as np
-import os
+
+from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
@@ -9,30 +12,37 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 load_dotenv
 
 # Load the trained TensorFlow model
-model = tf.keras.models.load_model("models/recommendation.h5")
+tour_recommendation = tf.keras.models.load_model("models/recommendation.h5")
 
 # Load your dataset (if still in local development)
+data_tour = pd.read_csv("data/tour.csv")
+
 # Load the dataset using database if its already hosted in cloud
-data = pd.read_excel("data/tour.xlsx")
 
-def preprocess_data(data):
-    # Define the columns used in the dataset
-    selected_columns = {
-        "Name": "name",
-        "Rating": "rating",
-        "Kategori": "category",
-        "Harga Tiket Masuk WNA Dewasa": "price_wna",  # Harga yang digunakan hanya harga WNA dewasa
-        "Kota/Kabupaten": "city",
-        "Jalan": "address",
-        "Google.Maps": "google_maps"
-    }
+"""
+# Define the connection
+username = 'GCP-SQL-ISNTANCE-USER'
+password = 'GCP-SQL-ISNTANCE-PASSWORD'
+database = 'DB-NAME'
+host = 'GCP-SQL-INSTANCE'
+port = '3306'
 
-    # Rename columns
-    data = data.rename(columns=selected_columns)
+# Create the connection string
+engineURL = f"mysql+mysqlconnector://{username}:{password}@{host}:{port}/{database}"
+# Create the engine
+engine = sa.create_engine(engineURL)
 
-    # Drop rows with missing values in important columns
-    data = data.dropna(subset=["name", "rating", "category", "price_wna", "city"])
+# Test the connection
+try:
+    with engine.connect() as connection:
+        print("Connected to MySQL database successfully!")
+except Exception as e:
+    print("Connection failed:", e)
 
+data_tour = pd.read_sql_query("SELECT * FROM tour", engine)
+"""
+
+def preprocess_tour_data(data):
     # Normalize price and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -48,7 +58,7 @@ def preprocess_data(data):
     return data, encoded_category, encoded_city, scaler, encoder_category, encoder_city
 
 # Process the dataset using the new function
-data, encoded_category, encoded_city, scaler, encoder_category, encoder_city = preprocess_data(data)
+data, encoded_category, encoded_city, scaler, encoder_category, encoder_city = preprocess_tour_data(data_tour)
 
 # Combine the features into the final input matrix (X)
 X = np.hstack((encoded_category, encoded_city, data[['price_wna', 'rating']].values))
@@ -76,12 +86,12 @@ def preprocess_user_input(user_input, scaler, encoder_category, encoder_city):
     return user_input_processed
 
 # Function for recommendations
-def recommend(user_input, top_n=5):
+def tour_recommendations(user_input, top_n=5):
     # Preprocess the user input
     processed_input = preprocess_user_input(user_input, scaler, encoder_category, encoder_city)
 
     # Predict the scores using the model
-    scores = model.predict(X)  # Use the entire dataset for prediction
+    scores = tour_recommendation.predict(X)  # Use the entire dataset for prediction
 
     # Add the predicted scores to the dataframe
     data['score'] = scores.flatten()
