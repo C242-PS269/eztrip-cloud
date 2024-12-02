@@ -75,18 +75,28 @@ def generate_itineraries(user_budget, city=None):
     remaining_budget -= selected_accommodation['price_wna']
     print(f"Remaining budget after initial selections: {remaining_budget}")
 
-    # Try to add more items while remaining budget allows
+    # Remove the selected items from the lists to prevent re-adding the same items
+    tours_filtered = tours_filtered[tours_filtered['name'] != selected_tour['name']]
+    culinary_filtered = culinary_filtered[culinary_filtered['name'] != selected_culinary['name']]
+    accommodations_filtered = accommodations_filtered[accommodations_filtered['name'] != selected_accommodation['name']]
+
+    # Initialize index for additional items
     tour_index = 2
     culinary_index = 2
 
-    affordable_tours = tours_filtered[tours_filtered['price_wna'] <= remaining_budget]
-    affordable_culinary = culinary_filtered[culinary_filtered['price_wna'] <= remaining_budget]
-    print(f"Affordable tours: {len(affordable_tours)}, Affordable culinary: {len(affordable_culinary)}")
+    # Only add more items if there is enough budget left
+    added_item = False  # To track if we add any item in each iteration
 
-    while remaining_budget < 0:
-        added_item = False  # Flag to track if an item is added in this iteration
-        
+    while remaining_budget >= 0:
+        # Break if no affordable item found in either category
+        if remaining_budget <= 0:
+            print("Remaining budget is exhausted. Stopping itinerary generation.")
+            break
+
+        added_item = False  # Reset added_item flag
+
         # Add additional tours if affordable
+        affordable_tours = tours_filtered[tours_filtered['price_wna'] <= remaining_budget]
         if not affordable_tours.empty:
             additional_tour = affordable_tours.iloc[0]
             itinerary[f"tour_{tour_index}"] = {
@@ -95,12 +105,16 @@ def generate_itineraries(user_budget, city=None):
                 "city": additional_tour['city'],
             }
             remaining_budget -= additional_tour['price_wna']  # Subtract only after adding
-            affordable_tours = affordable_tours[affordable_tours['price_wna'] <= remaining_budget]  # Re-filter
-            tour_index += 1
             print(f"Added tour: {additional_tour['name']}, Remaining budget: {remaining_budget}")
             added_item = True
+            tour_index += 1
+            # Remove the added tour from the list
+            tours_filtered = tours_filtered[tours_filtered['name'] != additional_tour['name']]
+        else:
+            print("No more affordable tours can be added.")
         
         # Add additional culinary if affordable
+        affordable_culinary = culinary_filtered[culinary_filtered['price_wna'] <= remaining_budget]
         if not affordable_culinary.empty:
             additional_culinary = affordable_culinary.iloc[0]
             itinerary[f"culinary_{culinary_index}"] = {
@@ -109,14 +123,17 @@ def generate_itineraries(user_budget, city=None):
                 "city": additional_culinary['city'],
             }
             remaining_budget -= additional_culinary['price_wna']  # Subtract only after adding
-            affordable_culinary = affordable_culinary[affordable_culinary['price_wna'] <= remaining_budget]  # Re-filter
-            culinary_index += 1
             print(f"Added culinary: {additional_culinary['name']}, Remaining budget: {remaining_budget}")
             added_item = True
+            culinary_index += 1
+            # Remove the added culinary from the list
+            culinary_filtered = culinary_filtered[culinary_filtered['name'] != additional_culinary['name']]
+        else:
+            print("No more affordable culinary can be added.")
 
-        # If no item is added, break the loop
+        # Check if no items were added in the iteration
         if not added_item:
-            print("No more items can be added.")
+            print("No more items can be added within the remaining budget.")
             break
 
     # Log final itinerary
