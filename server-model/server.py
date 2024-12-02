@@ -3,6 +3,8 @@ import config.preprocessing_tour
 import config.preprocessing_accommodation
 import config.preprocessing_culinary
 import config.setup_logging
+import config.generate_itinerary
+
 import json
 import os
 
@@ -89,6 +91,51 @@ def culinaries():
             return jsonify({"message": "No recommendations found."}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# Define the /itineraries endpoint
+@app.route('/itineraries', methods=['POST'])
+def itineraries():
+    try:
+        # Get user input
+        user_input = request.get_json()
+        
+        if not user_input:
+            return jsonify({"error": "Invalid JSON in request."}), 400
+        
+        # Debug log to verify input
+        print(f"User Input: {user_input}")
+
+        user_budget = user_input.get("budget")
+        city = user_input.get("city")  # City is optional
+
+        if not user_budget:
+            return jsonify({"error": "Missing 'budget' field in the request."}), 400
+
+        # Validate that user_budget is a number (int or float)
+        if not isinstance(user_budget, (int, float)):
+            return jsonify({"error": "'budget' must be a number."}), 400
+
+        # Generate itinerary
+        try:
+            itinerary = config.generate_itinerary.generate_itineraries(user_budget, city)
+        except Exception as e:
+            print(f"Error in generating itinerary: {str(e)}")  # Log error
+            return jsonify({"error": "Failed to generate itinerary due to internal error."}), 500
+
+        # Check if the itinerary is empty or None
+        if not itinerary or isinstance(itinerary, dict) and 'error' in itinerary:
+            return jsonify({"error": "No itinerary could be generated with the provided budget."}), 400
+
+        # Debug log to verify generated itinerary
+        print(f"Generated Itinerary: {itinerary}")
+
+        # Return the generated itinerary in the response
+        return jsonify({"itinerary": itinerary}), 200
+
+    except Exception as e:
+        # Log any unexpected error
+        print(f"Unexpected Error: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred."}), 500
 
 # Run the Flask app
 if __name__ == '__main__':
