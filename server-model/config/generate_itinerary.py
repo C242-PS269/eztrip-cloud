@@ -9,28 +9,6 @@ tours = pd.read_csv("data/tour.csv", usecols=["name", "price_wna", "city"])
 culinary = pd.read_csv("data/culinary.csv", usecols=["name", "price_wna", "city"])
 accommodations = pd.read_csv("data/accommodation.csv", usecols=["name", "price_wna", "city"])
 
-"""
-# Define the connection
-username = 'GCP-SQL-ISNTANCE-USER'
-password = 'GCP-SQL-ISNTANCE-PASSWORD'
-database = 'DB-NAME'
-host = 'GCP-SQL-INSTANCE'
-port = '3306'
-
-# Create the connection string
-engineURL = f"mysql+mysqlconnector://{username}:{password}@{host}:{port}/{database}"
-# Create the engine
-engine = sa.create_engine(engineURL)
-
-# Test the connection
-try:
-    with engine.connect() as connection:
-        print("Connected to MySQL database successfully!")
-except Exception as e:
-    print("Connection failed:", e)
-
-data_tour = pd.read_sql_query("SELECT * FROM itinerary", engine)
-"""
 def generate_itineraries(user_budget, city=None):
     print(f"Starting itinerary generation with budget: {user_budget}, city: {city}")
     
@@ -105,7 +83,7 @@ def generate_itineraries(user_budget, city=None):
     affordable_culinary = culinary_filtered[culinary_filtered['price_wna'] <= remaining_budget]
     print(f"Affordable tours: {len(affordable_tours)}, Affordable culinary: {len(affordable_culinary)}")
 
-    while remaining_budget > 0:
+    while remaining_budget < 0:
         added_item = False  # Flag to track if an item is added in this iteration
         
         # Add additional tours if affordable

@@ -17,31 +17,6 @@ culinary_recommendation = tf.keras.models.load_model("models/culinary.h5")
 # Load your dataset (if still in local development)
 data_culinary = pd.read_csv("data/culinary.csv")
 
-# Load the dataset using database if its already hosted in cloud
-
-"""
-# Define the connection
-username = 'GCP-SQL-ISNTANCE-USER'
-password = 'GCP-SQL-ISNTANCE-PASSWORD'
-database = 'DB-NAME'
-host = 'GCP-SQL-INSTANCE'
-port = '3306'
-
-# Create the connection string
-engineURL = f"mysql+mysqlconnector://{username}:{password}@{host}:{port}/{database}"
-# Create the engine
-engine = sa.create_engine(engineURL)
-
-# Test the connection
-try:
-    with engine.connect() as connection:
-        print("Connected to MySQL database successfully!")
-except Exception as e:
-    print("Connection failed:", e)
-
-data_tour = pd.read_sql_query("SELECT * FROM culinary", engine)
-"""
-
 # Load and preprocess the dataset
 def preprocess_culinary_data(data):
     # Normalize price_wna and rating
