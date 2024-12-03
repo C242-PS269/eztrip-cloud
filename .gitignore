@@ -1,7 +1,10 @@
 __pycache__/
 models/
+data/
+
 *.pyc
 *.pyo
 *log
-.env
 *.h5
+
+.env
