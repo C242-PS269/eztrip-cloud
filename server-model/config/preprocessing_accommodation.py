@@ -1,25 +1,20 @@
-# Import required libraries
 import tensorflow as tf
-import sqlalchemy as sa
 import pandas as pd
 import numpy as np
-
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from dotenv import load_dotenv
 
 # Load env
-load_dotenv
+load_dotenv()
 
 # Load the trained TensorFlow model
 accommodation_recommendation = tf.keras.models.load_model("models/accommodation.h5")
 
-# Load your dataset (if still in local development)
+# Load your dataset
 data_accommodation = pd.read_csv("data/accommodation.csv")
 
 # Define the preprocessing function
 def preprocess_accommodation_data(data):
-
     # Normalize price_wna and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -31,53 +26,48 @@ def preprocess_accommodation_data(data):
     # Combine selected features
     X = np.hstack((encoded_city, data[['price_wna', 'rating']].values))
 
+    print("Preprocessed data shape (X):", X.shape)  # Debugging step
     return X, scaler, encoder_city, data
 
 # Preprocess the dataset
 X, scaler, encoder_city, data = preprocess_accommodation_data(data_accommodation)
 
-# Function to preprocess user input
-def preprocess_user_input(user_input):
-    # Create a DataFrame for normalization and encoding
+# Check the input shape of the model
+print("Model input shape:", accommodation_recommendation.input_shape)  # Debugging step
+
+# Function to generate top 5 recommendations based on user input
+def accommodation_recommendations(user_input, top_n=5):
+    # Normalize user input
     user_df = pd.DataFrame([{
         "price_wna": user_input["max_price"],
         "rating": user_input["min_rating"]
     }])
-
-    # Normalize the user's input
     normalized_input = scaler.transform(user_df)
+    max_price_scaled, min_rating_scaled = normalized_input[0]
 
-    # One-hot encode the city
-    user_city = encoder_city.transform([[user_input['city']]])
+    # Predict scores for each data point before filtering
+    scores = accommodation_recommendation.predict(X)
+    data['score'] = scores.flatten()  # Add the scores to the data
 
-    # Combine all features into a single vector
-    user_vector = np.hstack((user_city, normalized_input))
-    return user_vector
-
-# Function to generate top 5 recommendations
-def accommodation_recommendations(user_input, top_n=5):
-    # Preprocess the user input
-    user_input_vector = preprocess_user_input(user_input)
-
-    # Predict scores for user input and dataset interaction
-    combined_input = np.concatenate([user_input_vector] * len(X), axis=0)  # Repeat user input
-    scores = accommodation_recommendation.predict(np.hstack((X, combined_input)))
-
-    # Add scores to the dataset
-    data['score'] = scores.flatten()
-
-    # Filter data based on user's raw criteria
+    # Filter data based on user criteria
     filtered_data = data[
-        (data['rating'] >= user_input["min_rating"]) &
-        (data['price_wna'] <= user_input["max_price"]) &
-        (data['city'] == user_input["city"])
+        (data['rating'] >= min_rating_scaled) & 
+        (data['price_wna'] <= max_price_scaled) & 
+        (data['city'] == user_input['city'])  # Filter based on city
     ]
+    
+    # If no accommodations meet the criteria, return an empty DataFrame
+    if filtered_data.empty:
+        print("No accommodations found based on the given criteria.")
+        return pd.DataFrame()  # Return empty DataFrame if no results
 
     # Get top N recommendations based on score
-    if not filtered_data.empty:
-        recommendations = filtered_data.nlargest(top_n, 'score')
-    else:
-        recommendations = pd.DataFrame()  # Empty DataFrame if no recommendations
+    recommendations = filtered_data.nlargest(top_n, 'score')
+
+    # Inverse the scaling for price_wna and rating
+    recommendations[['price_wna', 'rating']] = scaler.inverse_transform(
+        recommendations[['price_wna', 'rating']]
+    )
 
     # Select relevant columns for output
     selected_columns = ['name', 'rating', 'price_wna', 'city']
