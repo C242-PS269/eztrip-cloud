@@ -1,11 +1,16 @@
 from flask import Flask, request, jsonify
 import mysql.connector
 import re
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Mail, Message
 import random
 import string
 from config import Config  # Import the configuration class
+from dotenv import load_dotenv
+
+# Load configurations
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -213,4 +218,4 @@ def delete_user():
     return jsonify({'message': 'User account deleted successfully.'}), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
