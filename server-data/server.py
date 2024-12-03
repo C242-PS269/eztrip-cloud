@@ -1,12 +1,13 @@
-from flask import Flask, request, jsonify
 import mysql.connector
-import re
-import os
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_mail import Mail, Message
+import datetime
 import random
 import string
-from config import Config  # Import the configuration class
+import re
+import os
+
+from flask import Flask, request, jsonify
+from flask_mail import Mail, Message
+from config.config import Config
 from dotenv import load_dotenv
 
 # Load configurations
@@ -17,13 +18,13 @@ app = Flask(__name__)
 # Load configurations
 app.config.from_object(Config)
 
-# Flask-Mail configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your-email-password'
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
+# # Flask-Mail configuration
+# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+# app.config['MAIL_PORT'] = 465
+# app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
+# app.config['MAIL_PASSWORD'] = 'your-email-password'
+# app.config['MAIL_USE_TLS'] = False
+# app.config['MAIL_USE_SSL'] = True
 
 mail = Mail(app)
 
@@ -80,12 +81,11 @@ def register():
     # Generate random user ID
     user_id = generate_random_id()
 
-    # Create new user
-    hashed_password = generate_password_hash(password)
+    # Store the plain-text password (not recommended for production)
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("INSERT INTO users (id, username, email, password, phone_number) VALUES (%s, %s, %s, %s, %s)",
-                   (user_id, username, email, hashed_password, phone_number))
+                   (user_id, username, email, password, phone_number))
     conn.commit()
     conn.close()
 
@@ -95,57 +95,75 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-
     username = data.get('username')
     password = data.get('password')
 
-    # Validate data
+    # Validate the input
     if not username or not password:
-        return jsonify({'error': 'Username and password are required.'}), 400
+        return jsonify({'message': 'Username and password are required'}), 400
 
-    # Find user by username
+    # Query the database for the user
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
-    conn.close()
 
-    if not user or not check_password_hash(user[2], password):  # user[2] is the password field
-        return jsonify({'error': 'Invalid credentials.'}), 401
-
-    return jsonify({'message': 'Login successful!'}), 200
-
-# API endpoint for forgot password
-@app.route('/forgot-password', methods=['POST'])
-def forgot_password():
-    data = request.get_json()
-
-    email = data.get('email')
-
-    # Validate email
-    if not email:
-        return jsonify({'error': 'Email is required.'}), 400
-
-    # Find user by email
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-    user = cursor.fetchone()
-    conn.close()
-
+    # If user not found
     if not user:
-        return jsonify({'error': 'Email not found.'}), 404
+        return jsonify({'message': 'User not found'}), 404
 
-    # Generate random password reset code
-    reset_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+    stored_password = user[3]  # Assuming password is stored in the 4th column (index 3)
 
-    # Send reset code via email (you'll need to configure your email properly)
-    msg = Message('Password Reset Code', sender='your-email@gmail.com', recipients=[email])
-    msg.body = f'Your password reset code is: {reset_code}'
-    mail.send(msg)
+    # Compare the plain text password directly with the stored password
+    if password != stored_password:
+        return jsonify({'message': 'Incorrect password'}), 401
 
-    # Ideally, you'd store this reset code in the database and have an endpoint for resetting the password
-    return jsonify({'message': f'Password reset code sent to {email}.'}), 200
+    conn.close()
+    return jsonify({'message': 'Login successful', 'username': username}), 200
+
+# # API endpoint for forgot password
+# @app.route('/forgot-password', methods=['POST'])
+# def forgot_password():
+#     data = request.get_json()
+
+#     email = data.get('email')
+
+#     # Validate email
+#     if not email:
+#         return jsonify({'error': 'Email is required.'}), 400
+
+#     # Find user by email
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+#     user = cursor.fetchone()
+#     conn.close()
+
+#     if not user:
+#         return jsonify({'error': 'Email not found.'}), 404
+
+#     # Generate random password reset code
+#     reset_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
+
+#     # Store the reset code and its expiration in the database
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     expiration_time = datetime.datetime.now() + datetime.timedelta(hours=1)  # Set expiration time (1 hour)
+#     cursor.execute(
+#         "INSERT INTO password_resets (email, reset_code, expiration_time) VALUES (%s, %s, %s)",
+#         (email, reset_code, expiration_time)
+#     )
+#     conn.commit()
+#     conn.close()
+
+#     # Send reset code via email
+#     msg = Message('Password Reset Code', sender='your-email@gmail.com', recipients=[email])
+#     msg.body = f'Your password reset code is: {reset_code}. It will expire in 1 hour.'
+#     try:
+#         mail.send(msg)
+#         return jsonify({'message': f'Password reset code sent to {email}.'}), 200
+#     except Exception as e:
+#         return jsonify({'error': f'Failed to send email: {str(e)}'}), 500
 
 # API endpoint to update user info (email, phone, password)
 @app.route('/update', methods=['PUT'])
@@ -168,14 +186,13 @@ def update_user():
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
-    if not user or not check_password_hash(user[2], current_password):  # user[2] is the password field
+    if not user or user[3] != current_password:  # user[3] is the password field (plain-text comparison)
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
     # Update user information
     if new_password:
-        new_password_hash = generate_password_hash(new_password)
-        cursor.execute("UPDATE users SET password = %s WHERE username = %s", (new_password_hash, username))
+        cursor.execute("UPDATE users SET password = %s WHERE username = %s", (new_password, username))
 
     if new_email:
         cursor.execute("UPDATE users SET email = %s WHERE username = %s", (new_email, username))
@@ -206,7 +223,7 @@ def delete_user():
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
-    if not user or not check_password_hash(user[2], password):  # user[2] is the password field
+    if not user or user[3] != password:  # user[3] is the password field (plain-text comparison)
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
