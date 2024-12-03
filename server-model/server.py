@@ -21,7 +21,7 @@ logger = config.setup_logging.log()
 app = Flask(__name__)
 
 # API endpoint for recommendations
-@app.route('/recommendations', methods=['POST'])
+@app.route('/tours', methods=['POST'])
 def get_recommendations():
     try:
         # Get input from the user in JSON format
@@ -35,7 +35,7 @@ def get_recommendations():
             result = recommendations.to_dict(orient='records')
 
             # Pretty print and save to file
-            with open('recommendations.json', 'w') as f:
+            with open('tours.json', 'w') as f:
                 json.dump(result, f, indent=4)  # Pretty print with indentation
 
             # Return the recommendations in the response
