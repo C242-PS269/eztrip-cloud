@@ -174,7 +174,46 @@ def get_culinaries():
             return jsonify({"message": "No recommendations found."}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# API Endpoint for getting similar culinary recommendations
+@app.route('/culinaries/visited', methods=['POST'])
+def get_similar_culinary_recommendations():
 
+    """
+    API endpoint to get culinary recommendations based on a previously visited culinary place.
+
+    This function allows the user to find similar culinary places to one they have already visited
+    based on features like price, rating, category, and city.
+
+    Returns:
+        JSON: A list of culinary recommendations based on the previously visited culinary place.
+    """
+
+    try:
+        # Get the input from the user in JSON format
+        user_input = request.get_json()
+
+        # Extract 'culinary_name', 'city_filter', and 'max_price' from the user input
+        culinary_name = user_input.get('culinary_name')
+        city_filter = user_input.get('city_filter', None)
+        max_price = user_input.get('max_price', None)
+
+        # Get the top 5 recommendations based on the previously visited place
+        recommendations = config.preprocessing_culinary.visited_culinary_recommendations(culinary_name, city_filter, max_price)
+
+        if recommendations:
+            # Save the result to a file for reference
+            with open('visited_culinary_recommendations.json', 'w') as f:
+                json.dump(recommendations, f, indent=4)  # Pretty print with indentation
+
+            # Return the recommendations in the response
+            return jsonify({"recommendations": recommendations}), 200
+        else:
+            return jsonify({"message": "No recommendations found."}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 # API endpoint for generating itineraries based on user budget
 @app.route('/itineraries', methods=['POST'])
 def get_itineraries():
