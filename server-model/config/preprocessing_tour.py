@@ -6,6 +6,7 @@ import numpy as np
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.metrics.pairwise import cosine_similarity
+from config.sql_engine import engine
 
 # Load env
 load_dotenv()
@@ -14,7 +15,7 @@ load_dotenv()
 tour_recommendation = tf.keras.models.load_model("models/tour.h5")
 
 # Load your dataset (if still in local development)
-data_tour = pd.read_csv("data/tour.csv")
+data_tour = pd.read_sql_query("SELECT * FROM tour", engine)
 
 def preprocess_tour_data(data):
 

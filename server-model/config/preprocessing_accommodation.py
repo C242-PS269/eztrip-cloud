@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from dotenv import load_dotenv
+from config.sql_engine import engine
 
 # Load env
 load_dotenv()
@@ -14,7 +15,7 @@ load_dotenv()
 accommodation_recommendation = tf.keras.models.load_model("models/accommodation.h5")
 
 # Load your dataset
-data_accommodation = pd.read_csv("data/accommodation.csv")
+data_accommodation = pd.read_sql_query("SELECT * FROM accommodation", engine)
 
 # Define the preprocessing function
 def preprocess_accommodation_data(data):

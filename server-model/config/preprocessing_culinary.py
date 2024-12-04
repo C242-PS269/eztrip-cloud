@@ -6,6 +6,7 @@ import numpy as np
 from dotenv import load_dotenv
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from config.sql_engine import engine
 
 # Load env
 load_dotenv
@@ -14,7 +15,7 @@ load_dotenv
 culinary_recommendation = tf.keras.models.load_model("models/culinary.h5")
 
 # Load your dataset (if still in local development)
-data_culinary = pd.read_csv("data/culinary.csv")
+data_culinary = pd.read_sql_query("SELECT * FROM culinary", engine)
 
 # Preprocessing function for culinary data
 def preprocess_culinary_data(data):
