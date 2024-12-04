@@ -139,4 +139,4 @@ def itineraries():
 
 # Run the Flask app
 if __name__ == '__main__':
-    app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'))
+    app.run(host=os.getenv('MODEL_HOST'), port=os.getenv('MODEL_PORT'), debug=True)
