@@ -141,6 +141,20 @@ def get_accomodations():
 # API endpoint for accommodation recommendations based on previously visited accommodation
 @app.route('/accommodations/visited', methods=['POST'])
 def get_visited_accommodation_recommendations():
+
+    """
+    API endpoint to recommend similar accommodations based on a previously visited accommodation.
+
+    This endpoint receives a POST request containing user input with the name of a previously visited 
+    accommodation, and optional filters for city and maximum price. It returns the top 5 recommendations 
+    of similar accommodations.
+
+    Returns:
+    JSON:
+        - A list of recommended accommodations, including the name, rating, price, and city.
+        - An error message if the accommodation name is not found or another error occurs.
+    """
+
     try:
         # Get the input from the user in JSON format
         user_input = request.get_json()
