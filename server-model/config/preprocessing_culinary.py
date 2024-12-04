@@ -1,6 +1,5 @@
 # Import required libraries
 import tensorflow as tf
-import sqlalchemy as sa
 import pandas as pd
 import numpy as np
 
@@ -19,6 +18,21 @@ data_culinary = pd.read_csv("data/culinary.csv")
 
 # Preprocessing function for culinary data
 def preprocess_culinary_data(data):
+
+    """
+    Preprocesses the user's input to match the format expected by the recommendation model.
+
+    Args:
+        user_input (dict): A dictionary containing the user's input with keys:
+            - 'max_price' (float): The maximum price for filtering the recommendations.
+            - 'min_rating' (float): The minimum rating for filtering the recommendations.
+            - 'category' (str): The category of the culinary place.
+            - 'city' (str): The city where the culinary place is located.
+
+    Returns:
+        np.ndarray: A NumPy array containing the processed user input.
+    """
+
     # Normalize price_wna and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -52,6 +66,28 @@ def preprocess_user_input(user_input):
 
 # Function to recommend top 5 culinary options
 def culinary_recommendations(user_input, top_n=5):
+
+    """
+    Recommends top N culinary places based on the user's input using a trained model.
+
+    Args:
+        user_input (dict): A dictionary containing the user's input with keys:
+            - 'max_price' (float): The maximum price for filtering the recommendations.
+            - 'min_rating' (float): The minimum rating for filtering the recommendations.
+            - 'category' (str): The category of the culinary place.
+            - 'city' (str): The city where the culinary place is located.
+        top_n (int, optional): The number of top recommendations to return. Defaults to 5.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the top N culinary recommendations with columns:
+            - 'name': The name of the culinary place.
+            - 'rating': The rating of the culinary place.
+            - 'price_wna': The price of the culinary place.
+            - 'city': The city of the culinary place.
+            - 'category': The category of the culinary place.
+            - 'address': The address of the culinary place.
+    """
+
      # Preprocess the user input to match model's input format
     user_input_vector = preprocess_user_input(user_input)
 
@@ -99,6 +135,26 @@ def culinary_recommendations(user_input, top_n=5):
 
 # Function to recommend similar culinary places
 def visited_culinary_recommendations(culinary_name, city_filter=None, max_price=None, top_n=5):
+
+    """
+    Recommends culinary places similar to the one the user has visited, based on cosine similarity.
+
+    Args:
+        culinary_name (str): The name of the culinary place the user has visited.
+        city_filter (str, optional): The city to filter the recommendations by. Defaults to None.
+        max_price (float, optional): The maximum price for filtering the recommendations. Defaults to None.
+        top_n (int, optional): The number of top recommendations to return. Defaults to 5.
+
+    Returns:
+        list: A list of dictionaries containing the top N similar culinary places with the following keys:
+            - 'name': The name of the culinary place.
+            - 'rating': The rating of the culinary place.
+            - 'price_wna': The price of the culinary place.
+            - 'city': The city of the culinary place.
+            - 'category': The category of the culinary place.
+            - 'address': The address of the culinary place.
+    """
+
     # Ensure the culinary place exists in the data
     if culinary_name not in data['name'].values:
         return {"error": f"Place '{culinary_name}' not found in data."}, 404
