@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 # API endpoint for recommendations
 @app.route('/tours', methods=['POST'])
-def get_recommendations():
+def get_tours():
     try:
         # Get input from the user in JSON format
         user_input = request.get_json()
@@ -42,6 +42,34 @@ def get_recommendations():
             return jsonify({"recommendations": result}), 200
         else:
             return jsonify({"message": "No recommendations found."}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# API endpoint for visited recommendations
+@app.route('/tours/visited', methods=['POST'])
+def get_visited_recommendations():
+    try:
+        # Get the input from the user in JSON format
+        user_input = request.get_json()
+
+        # Extract 'tour_name', 'city_filter', and 'max_price' from the user input
+        tour_name = user_input.get('tour_name')
+        city_filter = user_input.get('city_filter', None)
+        max_price = user_input.get('max_price', None)
+
+        # Get the top 5 recommendations based on the previously visited place
+        recommendations = config.preprocessing_tour.visited_tour_recommendations(tour_name, city_filter, max_price)
+
+        if recommendations:
+            # Pretty print and save the result to a file
+            with open('visited.json', 'w') as f:
+                json.dump(recommendations, f, indent=4)  # Pretty print with indentation
+
+            # Return the recommendations in the response
+            return jsonify({"recommendations": recommendations}), 200
+        else:
+            return jsonify({"message": "No recommendations found."}), 404
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
@@ -71,7 +99,7 @@ def get_accomodations():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/culinaries', methods=['POST'])
-def culinaries():
+def get_culinaries():
     try:
         user_input = request.get_json()
         if not all(key in user_input for key in ['category', 'city', 'min_rating', 'max_price']):
@@ -94,7 +122,7 @@ def culinaries():
     
 # Define the /itineraries endpoint
 @app.route('/itineraries', methods=['POST'])
-def itineraries():
+def get_itineraries():
     try:
         # Get user input
         user_input = request.get_json()
