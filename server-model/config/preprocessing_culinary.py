@@ -4,8 +4,8 @@ import sqlalchemy as sa
 import pandas as pd
 import numpy as np
 
-from sqlalchemy import create_engine
 from dotenv import load_dotenv
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 # Load env
@@ -17,7 +17,7 @@ culinary_recommendation = tf.keras.models.load_model("models/culinary.h5")
 # Load your dataset (if still in local development)
 data_culinary = pd.read_csv("data/culinary.csv")
 
-# Load and preprocess the dataset
+# Preprocessing function for culinary data
 def preprocess_culinary_data(data):
     # Normalize price_wna and rating
     scaler = MinMaxScaler()
@@ -33,10 +33,10 @@ def preprocess_culinary_data(data):
     # Combine features
     X = np.hstack((encoded_category, encoded_city, data[['price_wna', 'rating']].values))
 
-    return data, X, scaler, encoder_category, encoder_city
+    return data, X, scaler, encoder_category, encoder_city, encoded_category, encoded_city
 
 # Preprocess the data
-data, X, scaler, encoder_category, encoder_city = preprocess_culinary_data(data_culinary)
+data, X, scaler, encoder_category, encoder_city, encoded_category, encoded_city = preprocess_culinary_data(data_culinary)
 
 # Function to preprocess user input
 def preprocess_user_input(user_input):
@@ -96,3 +96,44 @@ def culinary_recommendations(user_input, top_n=5):
     selected_columns = [col for col in required_columns if col in available_columns]
 
     return recommendations[selected_columns]
+
+# Function to recommend similar culinary places
+def visited_culinary_recommendations(culinary_name, city_filter=None, max_price=None, top_n=5):
+    # Ensure the culinary place exists in the data
+    if culinary_name not in data['name'].values:
+        return {"error": f"Place '{culinary_name}' not found in data."}, 404
+
+    # Feature extraction for similarity calculation
+    features = np.hstack((
+        encoded_category,
+        encoded_city,
+        data[['price_wna', 'rating']].values
+    ))
+
+    culinary_idx = data[data['name'] == culinary_name].index[0]
+
+    # Cosine similarity calculation
+    similarity_scores = cosine_similarity(features[culinary_idx].reshape(1, -1), features).flatten()
+    data['similarity'] = similarity_scores
+
+    # Handle optional filters for city and max_price
+    if max_price is not None:
+        max_price = float(max_price)
+
+    filtered_data = data[data['name'] != culinary_name]
+    
+    if city_filter:
+        filtered_data = filtered_data[filtered_data['city'] == city_filter]
+    if max_price is not None:
+        max_price_scaled = scaler.transform([[max_price, 0]])[0][0]
+        filtered_data = filtered_data[filtered_data['price_wna'] <= max_price_scaled]
+
+    # Return original scale for price_wna and rating
+    if not filtered_data.empty:
+        filtered_data[['price_wna', 'rating']] = scaler.inverse_transform(
+            filtered_data[['price_wna', 'rating']]
+        )
+
+    recommendations = filtered_data.nlargest(top_n, 'similarity') if not filtered_data.empty else pd.DataFrame()
+
+    return recommendations[['name', 'rating', 'price_wna', 'city', 'category', 'address']].to_dict(orient="records")
