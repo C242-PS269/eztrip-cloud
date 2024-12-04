@@ -1,32 +1,36 @@
+# Import the required libraries
 import mysql.connector
-import datetime
 import random
 import string
 import re
 import os
 
 from flask import Flask, request, jsonify
-from flask_mail import Mail, Message
-from config.config import Config
+from config.sql_engine import Config, test_connection, get_engine  # Import the config and functions
 from dotenv import load_dotenv
 
-# Load configurations
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
-# Load configurations
-app.config.from_object(Config)
+# Load configurations from config.sql_engine
+app.config.from_mapping({
+    'MYSQL_HOST': Config['host'],
+    'MYSQL_USER': Config['username'],
+    'MYSQL_PASSWORD': Config['password'],
+    'MYSQL_DATABASE': Config['database'],
+    'SERVER_HOST': os.getenv('SERVER_HOST'),
+    'SERVER_PORT': os.getenv('SERVER_PORT')
+})
 
-# # Flask-Mail configuration
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-# app.config['MAIL_PORT'] = 465
-# app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
-# app.config['MAIL_PASSWORD'] = 'your-email-password'
-# app.config['MAIL_USE_TLS'] = False
-# app.config['MAIL_USE_SSL'] = True
+# Test database connection at startup (optional)
+test_connection()
 
-mail = Mail(app)
+# MySQL database connection setup using the engine from config.sql_engine
+def get_db_connection():
+    engine = get_engine()  # Get the engine from config
+    return engine.connect()
 
 # MySQL database connection setup
 def get_db_connection():
@@ -120,50 +124,6 @@ def login():
 
     conn.close()
     return jsonify({'message': 'Login successful', 'username': username}), 200
-
-# # API endpoint for forgot password
-# @app.route('/forgot-password', methods=['POST'])
-# def forgot_password():
-#     data = request.get_json()
-
-#     email = data.get('email')
-
-#     # Validate email
-#     if not email:
-#         return jsonify({'error': 'Email is required.'}), 400
-
-#     # Find user by email
-#     conn = get_db_connection()
-#     cursor = conn.cursor()
-#     cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-#     user = cursor.fetchone()
-#     conn.close()
-
-#     if not user:
-#         return jsonify({'error': 'Email not found.'}), 404
-
-#     # Generate random password reset code
-#     reset_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
-
-#     # Store the reset code and its expiration in the database
-#     conn = get_db_connection()
-#     cursor = conn.cursor()
-#     expiration_time = datetime.datetime.now() + datetime.timedelta(hours=1)  # Set expiration time (1 hour)
-#     cursor.execute(
-#         "INSERT INTO password_resets (email, reset_code, expiration_time) VALUES (%s, %s, %s)",
-#         (email, reset_code, expiration_time)
-#     )
-#     conn.commit()
-#     conn.close()
-
-#     # Send reset code via email
-#     msg = Message('Password Reset Code', sender='your-email@gmail.com', recipients=[email])
-#     msg.body = f'Your password reset code is: {reset_code}. It will expire in 1 hour.'
-#     try:
-#         mail.send(msg)
-#         return jsonify({'message': f'Password reset code sent to {email}.'}), 200
-#     except Exception as e:
-#         return jsonify({'error': f'Failed to send email: {str(e)}'}), 500
 
 # API endpoint to update user info (email, phone, password)
 @app.route('/update', methods=['PUT'])
