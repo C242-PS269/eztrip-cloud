@@ -55,6 +55,23 @@ data, X, scaler, encoder_category, encoder_city, encoded_category, encoded_city 
 
 # Function to preprocess user input
 def preprocess_user_input(user_input):
+
+    """
+    Preprocess the user's input to match the format required by the recommendation model.
+    
+    Parameters:
+    - user_input (dict): A dictionary containing the user's input with keys:
+        - "max_price" (float): The maximum price the user is willing to pay.
+        - "min_rating" (float): The minimum rating the user is looking for.
+        - "category" (str): The category of the culinary (e.g., "Hotel", "Hostel").
+        - "city" (str): The city where the user is looking for culinary.
+    
+    Returns:
+    - user_vector (ndarray): A NumPy array representing the preprocessed user input, which includes:
+        - Normalized price and rating.
+        - Encoded category and city.
+    """
+
     user_df = pd.DataFrame([{
         "price_wna": user_input["max_price"],
         "rating": user_input["min_rating"]
