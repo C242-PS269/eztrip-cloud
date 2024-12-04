@@ -138,6 +138,35 @@ def get_accomodations():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# API endpoint for accommodation recommendations based on previously visited accommodation
+@app.route('/accommodations/visited', methods=['POST'])
+def get_visited_accommodation_recommendations():
+    try:
+        # Get the input from the user in JSON format
+        user_input = request.get_json()
+
+        # Extract the accommodation name, city filter, and max price
+        accommodation_name = user_input.get('accommodation_name')
+        city_filter = user_input.get('city_filter', None)
+        max_price = user_input.get('max_price', None)
+
+        # Get the top 5 recommendations based on previously visited accommodation
+        recommendations = config.preprocessing_accommodation.visited_accommodation_recommendations(accommodation_name, city_filter, max_price)
+
+        # Check if there's an error (e.g., accommodation not found)
+        if isinstance(recommendations, dict) and 'error' in recommendations:
+            return jsonify(recommendations), 404
+
+        # If recommendations are available, save to JSON file
+        with open('accomodations.json', 'w') as f:
+            json.dump(recommendations, f, indent=4)  # Pretty print with indentation
+
+        # Return the recommendations in the response
+        return jsonify({"accomodations": recommendations}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # API endpoint for getting culinary recommendations
 @app.route('/culinaries', methods=['POST'])
 def get_culinaries():
