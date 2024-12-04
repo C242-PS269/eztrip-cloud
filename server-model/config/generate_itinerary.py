@@ -3,13 +3,27 @@ import pandas as pd
 
 from config.sql_engine import engine
 
-# Load datasets (replace with your dataset paths)
-
+# Load data from the database
 tours = pd.read_sql_query("SELECT name, price_wna, city FROM tour", engine)
 culinary = pd.read_sql_query("SELECT name, price_wna, city FROM culinary", engine)
 accommodations = pd.read_sql_query("SELECT name, price_wna, city FROM accommodation", engine)
 
 def generate_itineraries(user_budget, city=None):
+
+    """
+    Generates an itinerary based on the user's budget, including tours, culinary experiences, and accommodation.
+    
+    Args:
+        user_budget (float): The total budget for the itinerary.
+        city (str, optional): The city where the itinerary should be generated. If None, no city filtering is applied.
+
+    Returns:
+        dict: A dictionary containing the generated itinerary with selected tours, culinary experiences, and accommodations, 
+              along with the total cost and remaining budget.
+    """
+    if user_budget <= 0:
+            return {"error": "Budget must be greater than 0."}
+
     try:
         print(f"Starting itinerary generation with budget: {user_budget}, city: {city}")
 
