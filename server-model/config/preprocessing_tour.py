@@ -4,9 +4,9 @@ import sqlalchemy as sa
 import pandas as pd
 import numpy as np
 
-from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Load env
 load_dotenv
@@ -95,3 +95,45 @@ def tour_recommendations(user_input, top_n=5):
 
     selected_columns = [col for col in required_columns if col in available_columns]
     return recommendations[selected_columns]
+
+# Function for recommendations based on previously visited places
+def visited_tour_recommendations(tour_name, city_filter=None, max_price=None, top_n=5):
+    # Ensure the tour_name exists in the data
+    if tour_name not in data['name'].values:
+        return {"error": f"Tour place '{tour_name}' is is not found."}
+
+    # Choose features for similarity calculation
+    features = np.hstack((
+        encoded_category,
+        encoded_city,
+        data[['price_wna', 'rating']].values
+    ))
+
+    # Get the index of the input destination
+    tour_idx = data[data['name'] == tour_name].index[0]
+
+    # Calculate cosine similarity between the input destination and all others
+    similarity_scores = cosine_similarity(features[tour_idx].reshape(1, -1), features).flatten()
+
+    # Add similarity scores to the data
+    data['similarity'] = similarity_scores
+
+    # Filter data based on max_price or city_filter
+    filtered_data = data[data['name'] != tour_name]
+    if city_filter:
+        filtered_data = filtered_data[filtered_data['city'] == city_filter]
+    if max_price is not None:
+        max_price_scaled = scaler.transform([[max_price, 0]])[0][0]
+        filtered_data = filtered_data[filtered_data['price_wna'] <= max_price_scaled]
+
+    # Inverse transform the price and rating to their original scale
+    if not filtered_data.empty:
+        filtered_data.loc[:, ['price_wna', 'rating']] = scaler.inverse_transform(
+            filtered_data[['price_wna', 'rating']]
+        )
+
+    # Sort by similarity and select top N
+    recommendations = filtered_data.nlargest(top_n, 'similarity') if not filtered_data.empty else pd.DataFrame()
+
+    # Return the recommendations with selected columns
+    return recommendations[['name', 'rating', 'price_wna', 'city', 'category', 'address', 'google_maps']].to_dict(orient='records')
