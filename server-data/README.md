@@ -9,13 +9,13 @@ This documentation outlines the available API endpoints in the application, incl
 ### API Endpoint: ```/register```
 
 ```
-curl -X POST http://localhost:3000/register -H "Content-Type: application/json" -d "{\"username\":\"john_doe\",\"email\":\"john@example.com\",\"password\":\"password123\",\"confirm_password\":\"password123\",\"phone_number\":\"1234567890\"}"
+curl -X POST http://localhost:5000/register -H "Content-Type: application/json" -d "{\"username\":\"john_doe\",\"email\":\"john@example.com\",\"password\":\"password123\",\"confirm_password\":\"password123\",\"phone_number\":\"1234567890\"}"
 ```
 
 ### API Endpoint: ```/login```
 
 ```
-curl -X POST http://localhost:3000/login -H "Content-Type: application/json" -d "{\"username\":\"john_doe\",\"password\":\"password123\"}"
+curl -X POST http://localhost:5000/login -H "Content-Type: application/json" -d "{\"username\":\"john_doe\",\"password\":\"password123\"}"
 ```
 
 ### API Endpoint: ```/update```
