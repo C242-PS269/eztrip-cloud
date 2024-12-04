@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 load_dotenv
 
 # Load the trained TensorFlow model
-tour_recommendation = tf.keras.models.load_model("models/recommendation.h5")
+tour_recommendation = tf.keras.models.load_model("models/tour.h5")
 
 # Load your dataset (if still in local development)
 data_tour = pd.read_csv("data/tour.csv")
