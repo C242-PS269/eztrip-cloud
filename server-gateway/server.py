@@ -1,6 +1,5 @@
 # Import the required libraries
-import requests
-import os
+import requests 
 
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
@@ -15,12 +14,11 @@ app = Flask(__name__)
 DATA_API_BASE_URL = 'http://localhost:5000'
 MODEL_API_BASE_URL = 'http://localhost:4000'
 
-
 """ START OF USER DATA APIs """
 
 # Register user
-@app.route('/api/userData/register', methods=['POST'])
-def register():
+@app.route('/api/data/user/register', methods=['POST'])
+def register_user():
     try:
         # Forward the request to the user registration API
         response = requests.post(f'{DATA_API_BASE_URL}/register', json=request.get_json())
@@ -29,8 +27,8 @@ def register():
         return jsonify({"error": str(e)}), 500
 
 # Login user
-@app.route('/api/userData/login', methods=['POST'])
-def login():
+@app.route('/api/data/user/login', methods=['POST'])
+def login_user():
     try:
         # Forward the login request to the login API
         response = requests.post(f'{DATA_API_BASE_URL}/login', json=request.get_json())
@@ -39,7 +37,7 @@ def login():
         return jsonify({"error": str(e)}), 500
 
 # Update user info
-@app.route('/api/userData/update', methods=['PUT'])
+@app.route('/api/data/user/update', methods=['PUT'])
 def update_user():
     try:
         # Forward the update user information request to the update API
@@ -49,7 +47,7 @@ def update_user():
         return jsonify({"error": str(e)}), 500
 
 # Delete user account
-@app.route('/api/userData/delete', methods=['DELETE'])
+@app.route('/api/data/user/account/delete', methods=['DELETE'])
 def delete_user():
     try:
         # Forward the delete account request to the delete API
@@ -60,6 +58,65 @@ def delete_user():
 
 """ END OF USER DATA APIs """
 
+""" START OF MODEL APIs """
+
+@app.route('/api/model/recommendations/tours', methods=['POST'])
+def get_tour_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/tours', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/model/recommendations/tours/visited', methods=['POST'])
+def get_visited_tour_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/tours/visited', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/model/recommendations/accommodations', methods=['POST'])
+def get_accommodation_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/accommodations', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/model/recommendations/accommodations/visited', methods=['POST'])
+def get_visited_accommodation_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/accommodations/visited', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/model/recommendations/culinaries', methods=['POST'])
+def get_culinary_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/culinaries', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/model/recommendations/culinaries/visited', methods=['POST'])
+def get_visited_culinary_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/culinaries/visited', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/api/model/recommendations/itineraries', methods=['POST'])
+def generate_itinerary_recommendations():
+    try:
+        response = requests.post(f'{MODEL_API_BASE_URL}/itineraries', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+""" END OF MODEL APIs """
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000, debug=True)
