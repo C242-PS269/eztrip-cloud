@@ -18,6 +18,26 @@ data_accommodation = pd.read_csv("data/accommodation.csv")
 
 # Define the preprocessing function
 def preprocess_accommodation_data(data):
+
+    """
+    Preprocess the accommodation data for input into the recommendation model.
+
+    Steps:
+    - Normalize the 'price_wna' and 'rating' columns.
+    - One-hot encode the 'city' column.
+    - Combine the processed features into a single array (X).
+
+    Args:
+    - data (pd.DataFrame): The raw accommodation data.
+
+    Returns:
+    - X (np.array): The processed feature matrix.
+    - scaler (MinMaxScaler): The scaler used for normalization.
+    - encoder_city (OneHotEncoder): The encoder used for city one-hot encoding.
+    - encoded_city (np.array): The one-hot encoded city values.
+    - data (pd.DataFrame): The original data with added preprocessed columns.
+    """
+
     # Normalize price_wna and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -40,6 +60,24 @@ print("Model input shape:", accommodation_recommendation.input_shape)  # Debuggi
 
 # Function to generate top 5 recommendations based on user input
 def accommodation_recommendations(user_input, top_n=5):
+
+    """
+    Generate accommodation recommendations based on user input.
+
+    Steps:
+    - Normalize the user input (price and rating).
+    - Predict scores for all accommodations.
+    - Filter accommodations based on user input (city, max price, min rating).
+    - Rank accommodations by predicted score and return the top N.
+
+    Args:
+    - user_input (dict): User input containing 'max_price', 'min_rating', and 'city'.
+    - top_n (int): The number of top recommendations to return (default is 5).
+
+    Returns:
+    - pd.DataFrame: The top N recommended accommodations with selected columns.
+    """
+
     # Normalize user input
     user_df = pd.DataFrame([{
         "price_wna": user_input["max_price"],
@@ -81,6 +119,25 @@ def accommodation_recommendations(user_input, top_n=5):
 
 # Function to recommend similar accommodations
 def visited_accommodation_recommendations(accommodation_name, city_filter=None, max_price=None, top_n=5):
+
+    """
+    Recommend similar accommodations based on a previously visited accommodation.
+
+    Steps:
+    - Calculate cosine similarity between the chosen accommodation and all others.
+    - Filter based on optional city and price constraints.
+    - Rank accommodations by similarity score and return the top N.
+
+    Args:
+    - accommodation_name (str): The name of the accommodation the user has visited.
+    - city_filter (str, optional): City filter for recommendations (default is None).
+    - max_price (float, optional): Maximum price filter for recommendations (default is None).
+    - top_n (int): The number of top recommendations to return (default is 5).
+
+    Returns:
+    - list: The top N recommended accommodations as a list of dictionaries with selected columns.
+    """
+
     # Ensure the accommodation exists in the data
     if accommodation_name not in data['name'].values:
         return {"error": f"Accommodation '{accommodation_name}' not found in data."}, 404
