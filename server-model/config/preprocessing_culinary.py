@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from config.sql_engine import engine
 
 # Load env
-load_dotenv
+load_dotenv()
 
 # Load the trained TensorFlow model
 culinary_recommendation = tf.keras.models.load_model("models/culinary.h5")

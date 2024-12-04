@@ -1,5 +1,5 @@
 # Import the required libraries
-import mysql.connector # Used for MySQL-specific connections (via SQLAlchemy)
+import mysql.connector
 import sqlalchemy as sa
 import os
 
@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Extract the database credentials from the environment variables
-username = os.getenv('DB_USER')  # MySQL username
+username = os.getenv('DB_USER')     # MySQL username
 password = os.getenv('DB_PASS')     # MySQL password
 database = os.getenv('DB_NAME')     # Database name
 host = os.getenv('DB_HOST')         # Database host
