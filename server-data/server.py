@@ -208,6 +208,16 @@ def generate_and_save_itinerary():
     if not user_id or not budget:
         return jsonify({'error': 'User ID and budget are required'}), 400
 
+    # Check if the user exists in the database
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
     # Call the ML model server (localhost:4000) to generate itineraries
     itinerary_request = {
         'budget': budget,
@@ -221,32 +231,17 @@ def generate_and_save_itinerary():
         if itinerary_response.status_code != 200:
             return jsonify({'error': 'Failed to generate itinerary from model server'}), 500
 
-        # Print the raw response content for debugging
-        print(f"Model server response status: {itinerary_response.status_code}")
-        print(f"Model server response content: {itinerary_response.text}")  # Print raw text content
-
         itinerary_data = itinerary_response.json()
 
-        # Print the JSON response to ensure we are getting 'total_cost'
-        print(f"Parsed response data: {itinerary_data}")
-
-        # Extract total cost from the response (make sure your model returns 'total_cost')
         total_cost = itinerary_data["itinerary"].get('total_cost', 0.00)
-
-        # Calculate remaining budget after total cost is deducted
         remaining_budget = budget - total_cost
 
-        # Debugging: Print out the total_cost and remaining_budget values
-        print(f"Total cost: {total_cost}, Remaining budget: {remaining_budget}")
-
-        # Generate a unique ID for the itinerary
         itinerary_id = str(uuid.uuid4())
 
         # Save generated itinerary to the database
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Save itinerary into the `itineraries` table
         cursor.execute(""" 
             INSERT INTO itineraries (id, user_id, itinerary_data, total_cost, remaining_budget, budget)
             VALUES (%s, %s, %s, %s, %s, %s)
@@ -257,9 +252,9 @@ def generate_and_save_itinerary():
 
         return jsonify({
             'message': 'Itinerary saved successfully',
-            'itinerary': itinerary_data["itinerary"],  # Use correct structure for 'itinerary' response
-            'total_cost': total_cost,  # Correct value of total_cost
-            'remaining_budget': remaining_budget  # Correct value of remaining_budget
+            'itinerary': itinerary_data["itinerary"],
+            'total_cost': total_cost,
+            'remaining_budget': remaining_budget
         }), 200
 
     except Exception as e:
