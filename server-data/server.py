@@ -285,11 +285,11 @@ def get_user_itineraries(user_id):
         for itinerary in itineraries:
             itinerary_dict = {
                 'id': itinerary[0],
-                'itinerary_data': json.loads(itinerary[2]),  # Convert JSON string back to dictionary
-                'total_cost': itinerary[3],
-                'remaining_budget': itinerary[4],
-                'budget': itinerary[5],
-                'created_at': itinerary[6].strftime('%Y-%m-%d %H:%M:%S')  # Format created_at as string
+                'itinerary_data': json.loads(str(itinerary[1])),  # Convert JSON string back to dictionary
+                'total_cost': itinerary[2],
+                'remaining_budget': itinerary[3],
+                'budget': itinerary[4],
+                'created_at': itinerary[5].strftime('%Y-%m-%d %H:%M:%S')  # Format created_at as string
             }
             itineraries_list.append(itinerary_dict)
 
