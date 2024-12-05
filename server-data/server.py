@@ -5,6 +5,8 @@ import json
 import random
 import string
 import uuid
+from textblob import TextBlob
+from googletrans import Translator
 
 import re
 import os
@@ -12,7 +14,6 @@ import os
 from flask import Flask, request, jsonify
 from config.sql_engine import Config, test_connection, get_engine  # Import the config and functions
 from dotenv import load_dotenv
-from decimal import Decimal
 
 # Load environment variables
 load_dotenv()
@@ -318,6 +319,134 @@ def delete_itinerary(id):
         conn.close()
 
         return jsonify({'message': 'Itinerary deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Helper function to perform sentiment analysis and translation
+def analyze_sentiment_and_translate(review_text):
+    # Sentiment analysis using TextBlob
+    blob = TextBlob(review_text)
+    sentiment_score = blob.sentiment.polarity  # Positive, Neutral, Negative
+    
+    # Classify sentiment
+    if sentiment_score > 0:
+        sentiment = 'positive'
+    elif sentiment_score < 0:
+        sentiment = 'negative'
+    else:
+        sentiment = 'neutral'
+    
+    # Translate review to English if it's not already in English
+    translator = Translator()
+    translated_review = translator.translate(review_text, src='auto', dest='en').text
+    
+    return sentiment, translated_review
+
+@app.route('/reviews/<category>', methods=['POST'])
+def submit_review(category):
+    data = request.get_json()
+    
+    user_id = data.get('user_id')
+    rating = data.get('rating')
+    review = data.get('review')
+    
+    if not user_id or not rating or not review:
+        return jsonify({'error': 'User ID, rating, and review text are required'}), 400
+
+    # Check if the user exists
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'User not found. Please provide a valid user_id.'}), 404
+    
+    # Perform sentiment analysis and translation
+    sentiment, translated_review = analyze_sentiment_and_translate(review)
+    
+    # Fetch username (assuming you have a way to fetch username using user_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    username = user[0]
+    
+    # Generate unique review ID
+    review_id = str(uuid.uuid4())
+    
+    # Save the review to the appropriate table based on category
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if category == 'tours':
+        cursor.execute("INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('tours_id'), rating, translated_review, sentiment))
+    elif category == 'accommodations':
+        cursor.execute("INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('accommodations_id'), rating, translated_review, sentiment))
+    elif category == 'culinaries':
+        cursor.execute("INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('culinaries_id'), rating, translated_review, sentiment))
+    else:
+        return jsonify({'error': 'Invalid category'}), 400
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Review submitted successfully!'}), 201
+
+# API endpoint to get reviews (for Tours, Accommodations, or Culinaries)
+@app.route('/reviews/<category>/user/<user_id>', methods=['GET'])
+def get_reviews(category, user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Fetch reviews for the specific user and category
+        if category == 'tours':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM tours_reviews WHERE user_id = %s", (user_id,))
+        elif category == 'accommodations':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM accommodations_reviews WHERE user_id = %s", (user_id,))
+        elif category == 'culinaries':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM culinary_reviews WHERE user_id = %s", (user_id,))
+        else:
+            return jsonify({'error': 'Invalid category'}), 400
+
+        reviews = cursor.fetchall()
+        conn.close()
+
+        if not reviews:
+            return jsonify({'message': 'No reviews found for this user'}), 404
+
+        # Prepare the list of reviews
+        review_list = []
+        for review in reviews:
+            review_data = {
+                'id': review[0],
+                'rating': review[1],
+                'review': review[2],
+                'sentiment': review[3],
+            }
+
+            # Fetch the username of the reviewer
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+            user = cursor.fetchone()
+            conn.close()
+
+            review_data['username'] = user[0] if user else 'Unknown'
+            review_list.append(review_data)
+
+        return jsonify({'reviews': review_list}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
