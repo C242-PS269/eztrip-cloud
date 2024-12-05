@@ -3,7 +3,7 @@
 ### Overview
 
 <p align=justify>
-This repo contains the machine learning models API service and demonstrates how to use them for generating personalized recommendations. It provides endpoints for recommending various items (e.g., recommendations, culinaries, accommodations, generate itineraies) based on user inputs like price, rating, category, and city. The API integrates machine learning models to process user data and deliver tailored suggestions.
+This documentation contains the machine learning models API service and demonstrates how to use them for generating personalized recommendations. It provides endpoints for recommending various items (e.g., recommendations, culinaries, accommodations, generate itineraies) based on user inputs like price, rating, category, and city. The API integrates machine learning models to process user data and deliver tailored suggestions.
 </p>
 
 ### Important Notes
