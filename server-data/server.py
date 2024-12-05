@@ -1,32 +1,40 @@
+# Import the required libraries
 import mysql.connector
-import datetime
+import requests
+import json
 import random
 import string
+import uuid
+
 import re
 import os
 
 from flask import Flask, request, jsonify
-from flask_mail import Mail, Message
-from config.config import Config
+from config.sql_engine import Config, test_connection, get_engine  # Import the config and functions
 from dotenv import load_dotenv
 
-# Load configurations
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 
-# Load configurations
-app.config.from_object(Config)
+# Load configurations from config.sql_engine
+app.config.from_mapping({
+    'MYSQL_HOST': Config['host'],
+    'MYSQL_USER': Config['username'],
+    'MYSQL_PASSWORD': Config['password'],
+    'MYSQL_DATABASE': Config['database'],
+    'SERVER_HOST': os.getenv('SERVER_HOST'),
+    'SERVER_PORT': os.getenv('SERVER_PORT')
+})
 
-# # Flask-Mail configuration
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-# app.config['MAIL_PORT'] = 465
-# app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
-# app.config['MAIL_PASSWORD'] = 'your-email-password'
-# app.config['MAIL_USE_TLS'] = False
-# app.config['MAIL_USE_SSL'] = True
+# Test database connection at startup (optional)
+test_connection()
 
-mail = Mail(app)
+# MySQL database connection setup using the engine from config.sql_engine
+def get_db_connection():
+    engine = get_engine()  # Get the engine from config
+    return engine.connect()
 
 # MySQL database connection setup
 def get_db_connection():
@@ -95,75 +103,28 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+
     username = data.get('username')
     password = data.get('password')
 
-    # Validate the input
     if not username or not password:
-        return jsonify({'message': 'Username and password are required'}), 400
+        return jsonify({'error': 'Username and password are required'}), 400
 
-    # Query the database for the user
+    # Check the database for the user
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
-    # If user not found
-    if not user:
-        return jsonify({'message': 'User not found'}), 404
+    # If user not found or password doesn't match
+    if not user or user[3] != password:  # Assuming password is stored in the 4th column (index 3)
+        conn.close()
+        return jsonify({'error': 'Invalid username or password'}), 401
 
-    stored_password = user[3]  # Assuming password is stored in the 4th column (index 3)
-
-    # Compare the plain text password directly with the stored password
-    if password != stored_password:
-        return jsonify({'message': 'Incorrect password'}), 401
-
+    # Return success and user_id (assuming user[0] is user_id)
+    user_id = user[0]
     conn.close()
-    return jsonify({'message': 'Login successful', 'username': username}), 200
-
-# # API endpoint for forgot password
-# @app.route('/forgot-password', methods=['POST'])
-# def forgot_password():
-#     data = request.get_json()
-
-#     email = data.get('email')
-
-#     # Validate email
-#     if not email:
-#         return jsonify({'error': 'Email is required.'}), 400
-
-#     # Find user by email
-#     conn = get_db_connection()
-#     cursor = conn.cursor()
-#     cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-#     user = cursor.fetchone()
-#     conn.close()
-
-#     if not user:
-#         return jsonify({'error': 'Email not found.'}), 404
-
-#     # Generate random password reset code
-#     reset_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
-
-#     # Store the reset code and its expiration in the database
-#     conn = get_db_connection()
-#     cursor = conn.cursor()
-#     expiration_time = datetime.datetime.now() + datetime.timedelta(hours=1)  # Set expiration time (1 hour)
-#     cursor.execute(
-#         "INSERT INTO password_resets (email, reset_code, expiration_time) VALUES (%s, %s, %s)",
-#         (email, reset_code, expiration_time)
-#     )
-#     conn.commit()
-#     conn.close()
-
-#     # Send reset code via email
-#     msg = Message('Password Reset Code', sender='your-email@gmail.com', recipients=[email])
-#     msg.body = f'Your password reset code is: {reset_code}. It will expire in 1 hour.'
-#     try:
-#         mail.send(msg)
-#         return jsonify({'message': f'Password reset code sent to {email}.'}), 200
-#     except Exception as e:
-#         return jsonify({'error': f'Failed to send email: {str(e)}'}), 500
+    return jsonify({'message': 'Login successful', 'user_id': user_id}), 200
 
 # API endpoint to update user info (email, phone, password)
 @app.route('/update', methods=['PUT'])
@@ -233,6 +194,75 @@ def delete_user():
     conn.close()
 
     return jsonify({'message': 'User account deleted successfully.'}), 200
+
+# API endpoint to generate itineraries and save to the database
+@app.route('/itineraries', methods=['POST'])
+def generate_and_save_itinerary():
+    data = request.get_json()
+
+    user_id = data.get('user_id')  # Get user_id from the request
+    budget = data.get('budget')
+    city = data.get('city')
+
+    if not user_id or not budget:
+        return jsonify({'error': 'User ID and budget are required'}), 400
+
+    # Call the ML model server (localhost:4000) to generate itineraries
+    itinerary_request = {
+        'budget': budget,
+        'city': city
+    }
+
+    try:
+        # Make the request to the ML server for itinerary generation
+        itinerary_response = requests.post('http://localhost:4000/itineraries', json=itinerary_request)
+        
+        if itinerary_response.status_code != 200:
+            return jsonify({'error': 'Failed to generate itinerary from model server'}), 500
+
+        # Print the raw response content for debugging
+        print(f"Model server response status: {itinerary_response.status_code}")
+        print(f"Model server response content: {itinerary_response.text}")  # Print raw text content
+
+        itinerary_data = itinerary_response.json()
+
+        # Print the JSON response to ensure we are getting 'total_cost'
+        print(f"Parsed response data: {itinerary_data}")
+
+        # Extract total cost from the response (make sure your model returns 'total_cost')
+        total_cost = itinerary_data["itinerary"].get('total_cost', 0.00)
+
+        # Calculate remaining budget after total cost is deducted
+        remaining_budget = budget - total_cost
+
+        # Debugging: Print out the total_cost and remaining_budget values
+        print(f"Total cost: {total_cost}, Remaining budget: {remaining_budget}")
+
+        # Generate a unique ID for the itinerary
+        itinerary_id = str(uuid.uuid4())
+
+        # Save generated itinerary to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Save itinerary into the `itineraries` table
+        cursor.execute(""" 
+            INSERT INTO itineraries (id, user_id, itinerary_data, total_cost, remaining_budget, budget)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (itinerary_id, user_id, json.dumps(itinerary_data), total_cost, remaining_budget, budget))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'message': 'Itinerary saved successfully',
+            'itinerary': itinerary_data["itinerary"],  # Use correct structure for 'itinerary' response
+            'total_cost': total_cost,  # Correct value of total_cost
+            'remaining_budget': remaining_budget  # Correct value of remaining_budget
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)

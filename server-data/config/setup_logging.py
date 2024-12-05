@@ -26,6 +26,6 @@ def log():
         ]
     )
 
-    # Create and return a logger instance with the name 'EzTrip ML-Model Server'
-    logger = logging.getLogger("EzTrip ML-Model Server")
+    # Create and return a logger instance with the name 'EzTrip Data Server'
+    logger = logging.getLogger("EzTrip Data Server")
     return logger

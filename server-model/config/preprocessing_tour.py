@@ -1,23 +1,39 @@
 # Import required libraries
 import tensorflow as tf
-import sqlalchemy as sa
 import pandas as pd
 import numpy as np
 
-from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
+from sklearn.metrics.pairwise import cosine_similarity
+from config.sql_engine import engine
 
 # Load env
-load_dotenv
+load_dotenv()
 
 # Load the trained TensorFlow model
-tour_recommendation = tf.keras.models.load_model("models/recommendation.h5")
+tour_recommendation = tf.keras.models.load_model("models/tour.h5")
 
 # Load your dataset (if still in local development)
-data_tour = pd.read_csv("data/tour.csv")
+data_tour = pd.read_sql_query("SELECT * FROM tours", engine)
 
 def preprocess_tour_data(data):
+
+    """
+    Preprocess the tour dataset by normalizing numerical features and encoding categorical features.
+    
+    Args:
+    - data (DataFrame): The raw dataset containing tour data
+    
+    Returns:
+    - data (DataFrame): Processed dataset with normalized price and rating
+    - encoded_category (ndarray): One-hot encoded category column
+    - encoded_city (ndarray): One-hot encoded city column
+    - scaler (MinMaxScaler): Fitted scaler for price and rating
+    - encoder_category (OneHotEncoder): Fitted encoder for category
+    - encoder_city (OneHotEncoder): Fitted encoder for city
+    """
+
     # Normalize price and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -40,6 +56,20 @@ X = np.hstack((encoded_category, encoded_city, data[['price_wna', 'rating']].val
 
 # Function to preprocess user input in the same way as training data
 def preprocess_user_input(user_input, scaler, encoder_category, encoder_city):
+
+    """
+    Preprocess user input for making recommendations by normalizing and encoding input values.
+    
+    Args:
+    - user_input (dict): User input containing 'max_price', 'min_rating', 'category', 'city'
+    - scaler (MinMaxScaler): Fitted scaler for normalizing price and rating
+    - encoder_category (OneHotEncoder): Fitted encoder for category
+    - encoder_city (OneHotEncoder): Fitted encoder for city
+    
+    Returns:
+    - user_input_processed (ndarray): Processed input ready for recommendation prediction
+    """
+
     # Normalize 'price_wna' and 'rating' values
     user_input_df = pd.DataFrame([{
         "price_wna": user_input["max_price"],
@@ -62,6 +92,18 @@ def preprocess_user_input(user_input, scaler, encoder_category, encoder_city):
 
 # Function for recommendations
 def tour_recommendations(user_input, top_n=5):
+
+    """
+    Generate top N tour recommendations based on user input.
+    
+    Args:
+    - user_input (dict): User input containing 'max_price', 'min_rating', 'category', 'city'
+    - top_n (int): Number of recommendations to return (default is 5)
+    
+    Returns:
+    - recommendations (DataFrame): Top N recommended tours with selected columns
+    """
+
     # Preprocess the user input
     processed_input = preprocess_user_input(user_input, scaler, encoder_category, encoder_city)
 
@@ -95,3 +137,59 @@ def tour_recommendations(user_input, top_n=5):
 
     selected_columns = [col for col in required_columns if col in available_columns]
     return recommendations[selected_columns]
+
+# Function for recommendations based on previously visited places
+def visited_tour_recommendations(tour_name, city_filter=None, max_price=None, top_n=5):
+
+    """
+    Generate recommendations based on a previously visited tour and calculate similarity with other tours.
+    
+    Args:
+    - tour_name (str): Name of the tour that the user has visited
+    - city_filter (str, optional): City filter to narrow down recommendations
+    - max_price (float, optional): Maximum price filter for recommendations
+    - top_n (int): Number of top recommendations to return (default is 5)
+    
+    Returns:
+    - recommendations (list): List of top N recommended tours based on similarity
+    """
+
+    # Ensure the tour_name exists in the data
+    if tour_name not in data['name'].values:
+        return {"error": f"Tour place '{tour_name}' is is not found."}
+
+    # Choose features for similarity calculation
+    features = np.hstack((
+        encoded_category,
+        encoded_city,
+        data[['price_wna', 'rating']].values
+    ))
+
+    # Get the index of the input destination
+    tour_idx = data[data['name'] == tour_name].index[0]
+
+    # Calculate cosine similarity between the input destination and all others
+    similarity_scores = cosine_similarity(features[tour_idx].reshape(1, -1), features).flatten()
+
+    # Add similarity scores to the data
+    data['similarity'] = similarity_scores
+
+    # Filter data based on max_price or city_filter
+    filtered_data = data[data['name'] != tour_name]
+    if city_filter:
+        filtered_data = filtered_data[filtered_data['city'] == city_filter]
+    if max_price is not None:
+        max_price_scaled = scaler.transform([[max_price, 0]])[0][0]
+        filtered_data = filtered_data[filtered_data['price_wna'] <= max_price_scaled]
+
+    # Inverse transform the price and rating to their original scale
+    if not filtered_data.empty:
+        filtered_data.loc[:, ['price_wna', 'rating']] = scaler.inverse_transform(
+            filtered_data[['price_wna', 'rating']]
+        )
+
+    # Sort by similarity and select top N
+    recommendations = filtered_data.nlargest(top_n, 'similarity') if not filtered_data.empty else pd.DataFrame()
+
+    # Return the recommendations with selected columns
+    return recommendations[['name', 'rating', 'price_wna', 'city', 'category', 'address', 'google_maps']].to_dict(orient='records')
