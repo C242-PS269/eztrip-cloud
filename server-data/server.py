@@ -1,7 +1,11 @@
 # Import the required libraries
 import mysql.connector
+import requests
+import json
 import random
 import string
+import uuid
+
 import re
 import os
 
@@ -99,31 +103,28 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+
     username = data.get('username')
     password = data.get('password')
 
-    # Validate the input
     if not username or not password:
-        return jsonify({'message': 'Username and password are required'}), 400
+        return jsonify({'error': 'Username and password are required'}), 400
 
-    # Query the database for the user
+    # Check the database for the user
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
-    # If user not found
-    if not user:
-        return jsonify({'message': 'User not found'}), 404
+    # If user not found or password doesn't match
+    if not user or user[3] != password:  # Assuming password is stored in the 4th column (index 3)
+        conn.close()
+        return jsonify({'error': 'Invalid username or password'}), 401
 
-    stored_password = user[3]  # Assuming password is stored in the 4th column (index 3)
-
-    # Compare the plain text password directly with the stored password
-    if password != stored_password:
-        return jsonify({'message': 'Incorrect password'}), 401
-
+    # Return success and user_id (assuming user[0] is user_id)
+    user_id = user[0]
     conn.close()
-    return jsonify({'message': 'Login successful', 'username': username}), 200
+    return jsonify({'message': 'Login successful', 'user_id': user_id}), 200
 
 # API endpoint to update user info (email, phone, password)
 @app.route('/update', methods=['PUT'])
@@ -193,6 +194,75 @@ def delete_user():
     conn.close()
 
     return jsonify({'message': 'User account deleted successfully.'}), 200
+
+# API endpoint to generate itineraries and save to the database
+@app.route('/itineraries', methods=['POST'])
+def generate_and_save_itinerary():
+    data = request.get_json()
+
+    user_id = data.get('user_id')  # Get user_id from the request
+    budget = data.get('budget')
+    city = data.get('city')
+
+    if not user_id or not budget:
+        return jsonify({'error': 'User ID and budget are required'}), 400
+
+    # Call the ML model server (localhost:4000) to generate itineraries
+    itinerary_request = {
+        'budget': budget,
+        'city': city
+    }
+
+    try:
+        # Make the request to the ML server for itinerary generation
+        itinerary_response = requests.post('http://localhost:4000/itineraries', json=itinerary_request)
+        
+        if itinerary_response.status_code != 200:
+            return jsonify({'error': 'Failed to generate itinerary from model server'}), 500
+
+        # Print the raw response content for debugging
+        print(f"Model server response status: {itinerary_response.status_code}")
+        print(f"Model server response content: {itinerary_response.text}")  # Print raw text content
+
+        itinerary_data = itinerary_response.json()
+
+        # Print the JSON response to ensure we are getting 'total_cost'
+        print(f"Parsed response data: {itinerary_data}")
+
+        # Extract total cost from the response (make sure your model returns 'total_cost')
+        total_cost = itinerary_data["itinerary"].get('total_cost', 0.00)
+
+        # Calculate remaining budget after total cost is deducted
+        remaining_budget = budget - total_cost
+
+        # Debugging: Print out the total_cost and remaining_budget values
+        print(f"Total cost: {total_cost}, Remaining budget: {remaining_budget}")
+
+        # Generate a unique ID for the itinerary
+        itinerary_id = str(uuid.uuid4())
+
+        # Save generated itinerary to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Save itinerary into the `itineraries` table
+        cursor.execute(""" 
+            INSERT INTO itineraries (id, user_id, itinerary_data, total_cost, remaining_budget, budget)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (itinerary_id, user_id, json.dumps(itinerary_data), total_cost, remaining_budget, budget))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'message': 'Itinerary saved successfully',
+            'itinerary': itinerary_data["itinerary"],  # Use correct structure for 'itinerary' response
+            'total_cost': total_cost,  # Correct value of total_cost
+            'remaining_budget': remaining_budget  # Correct value of remaining_budget
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
