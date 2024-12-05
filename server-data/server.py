@@ -12,6 +12,7 @@ import os
 from flask import Flask, request, jsonify
 from config.sql_engine import Config, test_connection, get_engine  # Import the config and functions
 from dotenv import load_dotenv
+from decimal import Decimal
 
 # Load environment variables
 load_dotenv()
@@ -263,6 +264,69 @@ def generate_and_save_itinerary():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# API endpoint to get all itineraries for a specific user
+@app.route('/itineraries/user/<user_id>', methods=['GET'])
+def get_user_itineraries(user_id):
+    try:
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to get all itineraries for the specific user_id
+        cursor.execute("SELECT id, itinerary_data, total_cost, remaining_budget, budget, created_at FROM itineraries WHERE user_id = %s", (user_id,))
+        itineraries = cursor.fetchall()
+
+        if not itineraries:
+            return jsonify({'message': 'No itineraries found for this user'}), 404
+
+        # Prepare the list of itineraries to return
+        itineraries_list = []
+        for itinerary in itineraries:
+            itinerary_dict = {
+                'id': itinerary[0],
+                'itinerary_data': json.loads(itinerary[2]),  # Convert JSON string back to dictionary
+                'total_cost': itinerary[3],
+                'remaining_budget': itinerary[4],
+                'budget': itinerary[5],
+                'created_at': itinerary[6].strftime('%Y-%m-%d %H:%M:%S')  # Format created_at as string
+            }
+            itineraries_list.append(itinerary_dict)
+
+        conn.close()
+
+        return jsonify({'itineraries': itineraries_list}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API endpoint to delete an itinerary by UUID
+@app.route('/itineraries/<uuid:id>', methods=['DELETE'])
+def delete_itinerary(id):
+    try:
+        # Convert the UUID object to string if needed (for database operations)
+        id_str = str(id)
+
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete the itinerary from the database
+        cursor.execute("DELETE FROM itineraries WHERE id = %s", (id_str,))
+        conn.commit()
+
+        # Check if any row was deleted
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'error': 'Itinerary not found'}), 404
+
+        conn.close()
+
+        return jsonify({'message': 'Itinerary deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
