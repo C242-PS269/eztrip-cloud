@@ -37,9 +37,9 @@ CREATE TABLE users (
 );
 
 CREATE TABLE itineraries (
-    id UUID PRIMARY KEY,                -- Unique identifier for the itinerary
+    id CHAR(36) PRIMARY KEY,                -- Unique identifier for the itinerary
     user_id VARCHAR(255) NOT NULL,      -- User ID associated with the itinerary
-    itinerary_data JSONB NOT NULL,      -- JSON data containing the details of the itinerary
+    itinerary_data JSON NOT NULL,      -- JSON data containing the details of the itinerary
     total_cost DECIMAL(10, 2) NOT NULL, -- Total cost of the itinerary
     remaining_budget DECIMAL(10, 2) NOT NULL, -- Remaining budget after itinerary creation
     budget DECIMAL(10, 2) NOT NULL,     -- Original budget provided by the user
