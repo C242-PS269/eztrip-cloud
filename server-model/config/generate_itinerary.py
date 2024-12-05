@@ -4,9 +4,9 @@ import pandas as pd
 from config.sql_engine import engine
 
 # Load data from the database
-tours = pd.read_sql_query("SELECT name, price_wna, city FROM tour", engine)
-culinary = pd.read_sql_query("SELECT name, price_wna, city FROM culinary", engine)
-accommodations = pd.read_sql_query("SELECT name, price_wna, city FROM accommodation", engine)
+tours = pd.read_sql_query("SELECT name, price_wna, city FROM tours", engine)
+culinary = pd.read_sql_query("SELECT name, price_wna, city FROM culinaries", engine)
+accommodations = pd.read_sql_query("SELECT name, price_wna, city FROM accommodations", engine)
 
 def generate_itineraries(user_budget, city=None):
 

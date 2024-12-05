@@ -15,7 +15,7 @@ load_dotenv()
 accommodation_recommendation = tf.keras.models.load_model("models/accommodation.h5")
 
 # Load your dataset
-data_accommodation = pd.read_sql_query("SELECT * FROM accommodation", engine)
+data_accommodation = pd.read_sql_query("SELECT * FROM accommodations", engine)
 
 # Define the preprocessing function
 def preprocess_accommodation_data(data):

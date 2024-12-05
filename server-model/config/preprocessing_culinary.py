@@ -15,7 +15,7 @@ load_dotenv()
 culinary_recommendation = tf.keras.models.load_model("models/culinary.h5")
 
 # Load your dataset (if still in local development)
-data_culinary = pd.read_sql_query("SELECT * FROM culinary", engine)
+data_culinary = pd.read_sql_query("SELECT * FROM culinaries", engine)
 
 # Preprocessing function for culinary data
 def preprocess_culinary_data(data):

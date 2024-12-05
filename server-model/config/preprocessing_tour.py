@@ -15,7 +15,7 @@ load_dotenv()
 tour_recommendation = tf.keras.models.load_model("models/tour.h5")
 
 # Load your dataset (if still in local development)
-data_tour = pd.read_sql_query("SELECT * FROM tour", engine)
+data_tour = pd.read_sql_query("SELECT * FROM tours", engine)
 
 def preprocess_tour_data(data):
 
