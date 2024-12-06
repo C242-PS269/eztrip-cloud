@@ -3,7 +3,6 @@ import config.preprocessing_accommodation
 import config.preprocessing_culinary
 import config.generate_itinerary
 import config.preprocessing_tour
-import config.setup_logging
 
 import json
 import os
@@ -13,9 +12,6 @@ from flask import Flask, request, jsonify
 
 # Load environment variables from .env file
 load_dotenv()
-
-# Logging setup
-logger = config.setup_logging.log()
 
 # Initialize Flask app
 app = Flask(__name__)
