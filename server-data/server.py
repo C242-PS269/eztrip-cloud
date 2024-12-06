@@ -140,7 +140,7 @@ def update_user():
     new_email = data.get('new_email')
     new_phone = data.get('new_phone')
 
-    # Validate data
+    # Validate required fields
     if not username or not current_password:
         return jsonify({'error': 'Username and current password are required.'}), 400
 
@@ -154,7 +154,20 @@ def update_user():
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
-    # Update user information
+    # Check for duplicate email and phone number if provided
+    if new_email:
+        cursor.execute("SELECT * FROM users WHERE email = %s", (new_email,))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Email address already in use.'}), 400
+
+    if new_phone:
+        cursor.execute("SELECT * FROM users WHERE phone_number = %s", (new_phone,))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Phone number already in use.'}), 400
+
+    # Update user information if the new data is provided
     if new_password:
         cursor.execute("UPDATE users SET password = %s WHERE username = %s", (new_password, username))
 
