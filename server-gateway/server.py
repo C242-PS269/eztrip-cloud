@@ -11,37 +11,37 @@ load_dotenv()
 app = Flask(__name__)
 
 # Define the base URLs for the data APIs
-DATA_API_BASE_URL = 'http://localhost:5000'
-MODEL_API_BASE_URL = 'http://localhost:4000'
+DATA_API_BASE_URL = 'http://localhost:5000' # change this with deployed data server
+MODEL_API_BASE_URL = 'http://localhost:4000' # change this with deployed model server
 
 """ START OF USER DATA APIs """
 
 # Register user
-@app.route('/api/data/user/register', methods=['POST'])
+@app.route('/api/data/user/account/register', methods=['POST'])
 def register_user():
     try:
         # Forward the request to the user registration API
-        response = requests.post(f'{DATA_API_BASE_URL}/register', json=request.get_json())
+        response = requests.post(f'{DATA_API_BASE_URL}/user/account/register', json=request.get_json())
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
 # Login user
-@app.route('/api/data/user/login', methods=['POST'])
+@app.route('/api/data/user/account/login', methods=['POST'])
 def login_user():
     try:
         # Forward the login request to the login API
-        response = requests.post(f'{DATA_API_BASE_URL}/login', json=request.get_json())
+        response = requests.post(f'{DATA_API_BASE_URL}/user/account/login', json=request.get_json())
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
 # Update user info
-@app.route('/api/data/user/update', methods=['PUT'])
+@app.route('/api/data/user/account/update', methods=['PUT'])
 def update_user():
     try:
         # Forward the update user information request to the update API
-        response = requests.put(f'{DATA_API_BASE_URL}/update', json=request.get_json())
+        response = requests.put(f'{DATA_API_BASE_URL}/user/account/update', json=request.get_json())
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
@@ -51,12 +51,122 @@ def update_user():
 def delete_user():
     try:
         # Forward the delete account request to the delete API
-        response = requests.delete(f'{DATA_API_BASE_URL}/delete', json=request.get_json())
+        response = requests.delete(f'{DATA_API_BASE_URL}/user/account/delete', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+    
+""" END OF USER DATA APIs """
+
+""" START OF ITINERARIES APIs """
+
+# Generate itineraries and save the user preferences
+@app.route('/api/data/features/itineraries', methods=['POST'])
+def generate_and_save_itinerary_recommendations():
+    try:
+        # Forward the delete account request to the delete API
+        response = requests.delete(f'{DATA_API_BASE_URL}/features/itineraries', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+    
+# Get all itineraries by user
+@app.route('/api/data/itineraries/user/<int:user_id>', methods=['GET'])
+def get_user_itineraries(user_id):
+    try:
+        response = requests.get(f'{DATA_API_BASE_URL}/itineraries/user/{user_id}')
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
-""" END OF USER DATA APIs """
+# Delete an itinerary by UUID
+@app.route('/api/data/itineraries/<uuid:id>', methods=['DELETE'])
+def delete_itinerary(id):
+    try:
+        response = requests.delete(f'{DATA_API_BASE_URL}/itineraries/{id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+""" END OF ITINERARIES APIs """
+
+""" START OF REVIEWS APIs """
+
+# Submit Review
+@app.route('/api/data/reviews/submit', methods=['POST'])
+def submit_review():
+    try:
+        # Forward the review submission request to the reviews API
+        response = requests.post(f'{DATA_API_BASE_URL}/places/reviews', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get Reviews for a Place
+@app.route('/api/data/reviews/<place_type>/<place_id>', methods=['GET'])
+def get_reviews(place_type, place_id):
+    try:
+        # Forward the request to fetch reviews for a place
+        response = requests.get(f'{DATA_API_BASE_URL}/places/reviews/{place_type}/{place_id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+""" END OF REVIEWS APIs """
+
+""" START OF EXPENSES APIs """
+
+# Add Expense
+@app.route('/api/data/user/expenses', methods=['POST'])
+def add_expense():
+    try:
+        # Forward the request to the add expense API
+        response = requests.post(f'{DATA_API_BASE_URL}/user/expenses', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get All Expenses for a User
+@app.route('/api/data/user/expenses/<user_id>', methods=['GET'])
+def get_expenses(user_id):
+    try:
+        # Forward the request to get expenses for a user
+        response = requests.get(f'{DATA_API_BASE_URL}/user/expenses/{user_id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get Total Expenses by Category for a User
+@app.route('/api/data/user/expenses/total/<user_id>', methods=['GET'])
+def get_expenses_total(user_id):
+    try:
+        # Forward the request to get total expenses by category for a user
+        response = requests.get(f'{DATA_API_BASE_URL}/user/expenses/total/{user_id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Update Expense
+@app.route('/api/data/user/expenses/<expense_id>', methods=['PUT'])
+def update_expense(expense_id):
+    try:
+        # Forward the request to update an expense
+        response = requests.put(f'{DATA_API_BASE_URL}/user/expenses/{expense_id}', json=request.get_json())
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Delete Expense
+@app.route('/api/data/user/expenses/<expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    try:
+        # Forward the request to delete an expense
+        response = requests.delete(f'{DATA_API_BASE_URL}/expenses/{expense_id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+""" END OF EXPENSES APIs """
 
 """ START OF MODEL APIs """
 
