@@ -181,22 +181,35 @@ def delete_user():
     if not username or not password:
         return jsonify({'error': 'Username and password are required.'}), 400
 
-    # Find user by username
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Step 1: Find user by username
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
     if not user or user[3] != password:  # user[3] is the password field (plain-text comparison)
+        cursor.close()
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
-    # Delete user from the database
-    cursor.execute("DELETE FROM users WHERE username = %s", (username,))
+    user_id = user[0]  # Assuming user[0] is the user_id
+
+    # Step 2: Delete related data from dependent tables
+    cursor.execute("DELETE FROM itineraries WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM accommodations_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM tours_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM culinary_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM expenses WHERE user_id = %s", (user_id,))
+
+    # Step 3: Delete the user from the users table
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
+
+    cursor.close()
     conn.close()
 
-    return jsonify({'message': 'User account deleted successfully.'}), 200
+    return jsonify({'message': 'User account and all related data deleted successfully. Thankyou for using EzTrip!, Sorry we have to see you go :('}), 200
 
 # API endpoint to generate itineraries and save to the database
 @app.route('/itineraries', methods=['POST'])
