@@ -323,134 +323,124 @@ def delete_itinerary(id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Helper function to perform sentiment analysis and translation
-def analyze_sentiment_and_translate(review_text):
-    # Sentiment analysis using TextBlob
-    blob = TextBlob(review_text)
-    sentiment_score = blob.sentiment.polarity  # Positive, Neutral, Negative
-    
-    # Classify sentiment
-    if sentiment_score > 0:
-        sentiment = 'positive'
-    elif sentiment_score < 0:
-        sentiment = 'negative'
+# Function to analyze sentiment
+def analyze_sentiment(text):
+    blob = TextBlob(text)
+    polarity = blob.sentiment.polarity
+
+    if polarity > 0.1:
+        return 'positive'
+    elif polarity < -0.1:
+        return 'negative'
     else:
-        sentiment = 'neutral'
-    
-    # Translate review to English if it's not already in English
+        return 'neutral'
+
+# Function to translate review to English (if needed)
+def translate_to_english(text):
     translator = Translator()
-    translated_review = translator.translate(review_text, src='auto', dest='en').text
-    
-    return sentiment, translated_review
+    translated = translator.translate(text, src='auto', dest='en')
+    return translated.text
 
-@app.route('/reviews/<category>', methods=['POST'])
-def submit_review(category):
+# POST /reviews (Submit Review)
+@app.route('/reviews', methods=['POST'])
+def submit_review():
     data = request.get_json()
-    
-    user_id = data.get('user_id')
-    rating = data.get('rating')
-    review = data.get('review')
-    
-    if not user_id or not rating or not review:
-        return jsonify({'error': 'User ID, rating, and review text are required'}), 400
+    user_id = data['user_id']
+    place_id = data['place_id']
+    place_type = data['place_type']
+    rating = data['rating']
+    reviews = data['reviews']
 
-    # Check if the user exists
+    # Step 1: Check if the user_id exists in the users table
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
-    conn.close()
     
     if not user:
-        return jsonify({'error': 'User not found. Please provide a valid user_id.'}), 404
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "User does not exist"}), 400
     
-    # Perform sentiment analysis and translation
-    sentiment, translated_review = analyze_sentiment_and_translate(review)
+    # Step 2: Translate review to English (if necessary)
+    translated_review = translate_to_english(reviews)
     
-    # Fetch username (assuming you have a way to fetch username using user_id)
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    
-    username = user[0]
-    
-    # Generate unique review ID
+    # Step 3: Analyze sentiment of the translated review
+    sentiment = analyze_sentiment(translated_review)
+
+    # Step 4: Proceed with review submission
     review_id = str(uuid.uuid4())
-    
-    # Save the review to the appropriate table based on category
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    if category == 'tours':
-        cursor.execute("INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('tours_id'), rating, translated_review, sentiment))
-    elif category == 'accommodations':
-        cursor.execute("INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('accommodations_id'), rating, translated_review, sentiment))
-    elif category == 'culinaries':
-        cursor.execute("INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('culinaries_id'), rating, translated_review, sentiment))
+    if place_type == 'accommodations':
+        cursor.execute("""
+            INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
+    elif place_type == 'tours':
+        cursor.execute("""
+            INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
+    elif place_type == 'culinaries':
+        cursor.execute("""
+            INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
     else:
-        return jsonify({'error': 'Invalid category'}), 400
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Invalid place type"}), 400
     
     conn.commit()
+    cursor.close()
     conn.close()
     
-    return jsonify({'message': 'Review submitted successfully!'}), 201
+    return jsonify({"message": "Review submitted successfully", "review_id": review_id}), 201
 
-# API endpoint to get reviews (for Tours, Accommodations, or Culinaries)
-@app.route('/reviews/<category>/user/<user_id>', methods=['GET'])
-def get_reviews(category, user_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Fetch reviews for the specific user and category
-        if category == 'tours':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM tours_reviews WHERE user_id = %s", (user_id,))
-        elif category == 'accommodations':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM accommodations_reviews WHERE user_id = %s", (user_id,))
-        elif category == 'culinaries':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM culinary_reviews WHERE user_id = %s", (user_id,))
-        else:
-            return jsonify({'error': 'Invalid category'}), 400
-
-        reviews = cursor.fetchall()
-        conn.close()
-
-        if not reviews:
-            return jsonify({'message': 'No reviews found for this user'}), 404
-
-        # Prepare the list of reviews
-        review_list = []
-        for review in reviews:
-            review_data = {
-                'id': review[0],
-                'rating': review[1],
-                'review': review[2],
-                'sentiment': review[3],
-            }
-
-            # Fetch the username of the reviewer
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-            user = cursor.fetchone()
-            conn.close()
-
-            review_data['username'] = user[0] if user else 'Unknown'
-            review_list.append(review_data)
-
-        return jsonify({'reviews': review_list}), 200
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+# GET /reviews/{place_type}/{place_id} (Get Reviews for a Place)
+@app.route('/reviews/<place_type>/<place_id>', methods=['GET'])
+def get_reviews(place_type, place_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if place_type == 'accommodations':
+        cursor.execute("""
+            SELECT ar.id, u.username, ar.rating, ar.reviews, ar.sentiment 
+            FROM accommodations_reviews ar
+            JOIN users u ON ar.user_id = u.id
+            WHERE ar.accommodations_id = %s
+        """, (place_id,))
+    elif place_type == 'tours':
+        cursor.execute("""
+            SELECT tr.id, u.username, tr.rating, tr.reviews, tr.sentiment 
+            FROM tours_reviews tr
+            JOIN users u ON tr.user_id = u.id
+            WHERE tr.tours_id = %s
+        """, (place_id,))
+    elif place_type == 'culinaries':
+        cursor.execute("""
+            SELECT cr.id, u.username, cr.rating, cr.reviews, cr.sentiment 
+            FROM culinary_reviews cr
+            JOIN users u ON cr.user_id = u.id
+            WHERE cr.culinaries_id = %s
+        """, (place_id,))
+    else:
+        return jsonify({"error": "Invalid place type"}), 400
+    
+    reviews = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    review_list = []
+    for review in reviews:
+        review_list.append({
+            "review_id": review[0],
+            "username": review[1],   # Show username instead of user_id
+            "rating": review[2],
+            "reviews": review[3],
+            "sentiment": review[4]
+        })
+    
+    return jsonify(review_list)
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
