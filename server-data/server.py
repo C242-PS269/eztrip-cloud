@@ -5,6 +5,8 @@ import json
 import random
 import string
 import uuid
+from textblob import TextBlob
+from googletrans import Translator
 
 import re
 import os
@@ -207,6 +209,16 @@ def generate_and_save_itinerary():
     if not user_id or not budget:
         return jsonify({'error': 'User ID and budget are required'}), 400
 
+    # Check if the user exists in the database
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
     # Call the ML model server (localhost:4000) to generate itineraries
     itinerary_request = {
         'budget': budget,
@@ -220,32 +232,17 @@ def generate_and_save_itinerary():
         if itinerary_response.status_code != 200:
             return jsonify({'error': 'Failed to generate itinerary from model server'}), 500
 
-        # Print the raw response content for debugging
-        print(f"Model server response status: {itinerary_response.status_code}")
-        print(f"Model server response content: {itinerary_response.text}")  # Print raw text content
-
         itinerary_data = itinerary_response.json()
 
-        # Print the JSON response to ensure we are getting 'total_cost'
-        print(f"Parsed response data: {itinerary_data}")
-
-        # Extract total cost from the response (make sure your model returns 'total_cost')
         total_cost = itinerary_data["itinerary"].get('total_cost', 0.00)
-
-        # Calculate remaining budget after total cost is deducted
         remaining_budget = budget - total_cost
 
-        # Debugging: Print out the total_cost and remaining_budget values
-        print(f"Total cost: {total_cost}, Remaining budget: {remaining_budget}")
-
-        # Generate a unique ID for the itinerary
         itinerary_id = str(uuid.uuid4())
 
         # Save generated itinerary to the database
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Save itinerary into the `itineraries` table
         cursor.execute(""" 
             INSERT INTO itineraries (id, user_id, itinerary_data, total_cost, remaining_budget, budget)
             VALUES (%s, %s, %s, %s, %s, %s)
@@ -256,13 +253,204 @@ def generate_and_save_itinerary():
 
         return jsonify({
             'message': 'Itinerary saved successfully',
-            'itinerary': itinerary_data["itinerary"],  # Use correct structure for 'itinerary' response
-            'total_cost': total_cost,  # Correct value of total_cost
-            'remaining_budget': remaining_budget  # Correct value of remaining_budget
+            'itinerary': itinerary_data["itinerary"],
+            'total_cost': total_cost,
+            'remaining_budget': remaining_budget
         }), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# API endpoint to get all itineraries for a specific user
+@app.route('/itineraries/user/<user_id>', methods=['GET'])
+def get_user_itineraries(user_id):
+    try:
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Query to get all itineraries for the specific user_id
+        cursor.execute("SELECT id, itinerary_data, total_cost, remaining_budget, budget, created_at FROM itineraries WHERE user_id = %s", (user_id,))
+        itineraries = cursor.fetchall()
+
+        if not itineraries:
+            return jsonify({'message': 'No itineraries found for this user'}), 404
+
+        # Prepare the list of itineraries to return
+        itineraries_list = []
+        for itinerary in itineraries:
+            itinerary_dict = {
+                'id': itinerary[0],
+                'itinerary_data': json.loads(str(itinerary[1])),  # Convert JSON string back to dictionary
+                'total_cost': itinerary[2],
+                'remaining_budget': itinerary[3],
+                'budget': itinerary[4],
+                'created_at': itinerary[5].strftime('%Y-%m-%d %H:%M:%S')  # Format created_at as string
+            }
+            itineraries_list.append(itinerary_dict)
+
+        conn.close()
+
+        return jsonify({'itineraries': itineraries_list}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API endpoint to delete an itinerary by UUID
+@app.route('/itineraries/<uuid:id>', methods=['DELETE'])
+def delete_itinerary(id):
+    try:
+        # Convert the UUID object to string if needed (for database operations)
+        id_str = str(id)
+
+        # Connect to the database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete the itinerary from the database
+        cursor.execute("DELETE FROM itineraries WHERE id = %s", (id_str,))
+        conn.commit()
+
+        # Check if any row was deleted
+        if cursor.rowcount == 0:
+            conn.close()
+            return jsonify({'error': 'Itinerary not found'}), 404
+
+        conn.close()
+
+        return jsonify({'message': 'Itinerary deleted successfully'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Helper function to perform sentiment analysis and translation
+def analyze_sentiment_and_translate(review_text):
+    # Sentiment analysis using TextBlob
+    blob = TextBlob(review_text)
+    sentiment_score = blob.sentiment.polarity  # Positive, Neutral, Negative
+    
+    # Classify sentiment
+    if sentiment_score > 0:
+        sentiment = 'positive'
+    elif sentiment_score < 0:
+        sentiment = 'negative'
+    else:
+        sentiment = 'neutral'
+    
+    # Translate review to English if it's not already in English
+    translator = Translator()
+    translated_review = translator.translate(review_text, src='auto', dest='en').text
+    
+    return sentiment, translated_review
+
+@app.route('/reviews/<category>', methods=['POST'])
+def submit_review(category):
+    data = request.get_json()
+    
+    user_id = data.get('user_id')
+    rating = data.get('rating')
+    review = data.get('review')
+    
+    if not user_id or not rating or not review:
+        return jsonify({'error': 'User ID, rating, and review text are required'}), 400
+
+    # Check if the user exists
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'User not found. Please provide a valid user_id.'}), 404
+    
+    # Perform sentiment analysis and translation
+    sentiment, translated_review = analyze_sentiment_and_translate(review)
+    
+    # Fetch username (assuming you have a way to fetch username using user_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    username = user[0]
+    
+    # Generate unique review ID
+    review_id = str(uuid.uuid4())
+    
+    # Save the review to the appropriate table based on category
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if category == 'tours':
+        cursor.execute("INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('tours_id'), rating, translated_review, sentiment))
+    elif category == 'accommodations':
+        cursor.execute("INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('accommodations_id'), rating, translated_review, sentiment))
+    elif category == 'culinaries':
+        cursor.execute("INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
+                       (review_id, user_id, data.get('culinaries_id'), rating, translated_review, sentiment))
+    else:
+        return jsonify({'error': 'Invalid category'}), 400
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Review submitted successfully!'}), 201
+
+# API endpoint to get reviews (for Tours, Accommodations, or Culinaries)
+@app.route('/reviews/<category>/user/<user_id>', methods=['GET'])
+def get_reviews(category, user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Fetch reviews for the specific user and category
+        if category == 'tours':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM tours_reviews WHERE user_id = %s", (user_id,))
+        elif category == 'accommodations':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM accommodations_reviews WHERE user_id = %s", (user_id,))
+        elif category == 'culinaries':
+            cursor.execute("SELECT id, rating, reviews, sentiment FROM culinary_reviews WHERE user_id = %s", (user_id,))
+        else:
+            return jsonify({'error': 'Invalid category'}), 400
+
+        reviews = cursor.fetchall()
+        conn.close()
+
+        if not reviews:
+            return jsonify({'message': 'No reviews found for this user'}), 404
+
+        # Prepare the list of reviews
+        review_list = []
+        for review in reviews:
+            review_data = {
+                'id': review[0],
+                'rating': review[1],
+                'review': review[2],
+                'sentiment': review[3],
+            }
+
+            # Fetch the username of the reviewer
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+            user = cursor.fetchone()
+            conn.close()
+
+            review_data['username'] = user[0] if user else 'Unknown'
+            review_list.append(review_data)
+
+        return jsonify({'reviews': review_list}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
