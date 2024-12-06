@@ -7,6 +7,7 @@ import string
 import uuid
 from textblob import TextBlob
 from googletrans import Translator
+import datetime
 
 import re
 import os
@@ -441,6 +442,149 @@ def get_reviews(place_type, place_id):
         })
     
     return jsonify(review_list)
+
+# POST /expenses (Add an Expense)
+@app.route('/expenses', methods=['POST'])
+def add_expense():
+    data = request.get_json()
+    user_id = data['user_id']
+    category = data['category']
+    amount = data['amount']
+    expense_date = data['expense_date']
+    description = data.get('description', '')  # Optional
+
+    # Step 1: Check if the user_id exists in the users table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "User does not exist"}), 400
+
+    # Step 2: Insert the expense into the expenses table
+    expense_id = str(uuid.uuid4())
+    created_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    cursor.execute("""
+        INSERT INTO expenses (expense_id, user_id, category, expense_date, amount, description, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (expense_id, user_id, category, expense_date, amount, description, created_at))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Expense added successfully", "expense_id": expense_id}), 201
+
+# GET /expenses/<user_id> (Get All Expenses for a User)
+@app.route('/expenses/<user_id>', methods=['GET'])
+def get_expenses(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE user_id = %s", (user_id,))
+    
+    expenses = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    expense_list = []
+    for expense in expenses:
+        expense_list.append({
+            "expense_id": expense[0],
+            "category": expense[2],
+            "expense_date": expense[3],
+            "amount": expense[4],
+            "description": expense[5],
+            "created_at": expense[6]
+        })
+
+    return jsonify(expense_list)
+
+# GET /expenses/total/<user_id> (Get Total Expenses by Category)
+@app.route('/expenses/total/<user_id>', methods=['GET'])
+def get_expenses_total(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT category, SUM(amount) as total_amount
+        FROM expenses
+        WHERE user_id = %s
+        GROUP BY category
+    """, (user_id,))
+    
+    totals = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    total_expenses = []
+    for total in totals:
+        total_expenses.append({
+            "category": total[0],
+            "total_amount": total[1]
+        })
+
+    return jsonify(total_expenses)
+
+# PUT /expenses/<expense_id> (Update an Expense)
+@app.route('/expenses/<expense_id>', methods=['PUT'])
+def update_expense(expense_id):
+    data = request.get_json()
+    category = data.get('category')
+    amount = data.get('amount')
+    expense_date = data.get('expense_date')
+    description = data.get('description')
+
+    # Step 1: Check if the expense_id exists in the expenses table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE expense_id = %s", (expense_id,))
+    expense = cursor.fetchone()
+
+    if not expense:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Expense not found"}), 404
+
+    # Step 2: Update the expense in the expenses table
+    if category:
+        cursor.execute("UPDATE expenses SET category = %s WHERE expense_id = %s", (category, expense_id))
+    if amount:
+        cursor.execute("UPDATE expenses SET amount = %s WHERE expense_id = %s", (amount, expense_id))
+    if expense_date:
+        cursor.execute("UPDATE expenses SET expense_date = %s WHERE expense_id = %s", (expense_date, expense_id))
+    if description:
+        cursor.execute("UPDATE expenses SET description = %s WHERE expense_id = %s", (description, expense_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Expense updated successfully"})
+
+# DELETE /expenses/<expense_id> (Delete an Expense)
+@app.route('/expenses/<expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    # Step 1: Check if the expense_id exists in the expenses table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE expense_id = %s", (expense_id,))
+    expense = cursor.fetchone()
+
+    if not expense:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Expense not found"}), 404
+
+    # Step 2: Delete the expense from the expenses table
+    cursor.execute("DELETE FROM expenses WHERE expense_id = %s", (expense_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Expense deleted successfully"})
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
