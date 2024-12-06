@@ -443,14 +443,12 @@ def get_reviews(place_type, place_id):
     
     return jsonify(review_list)
 
-# POST /expenses (Add an Expense)
 @app.route('/expenses', methods=['POST'])
 def add_expense():
     data = request.get_json()
     user_id = data['user_id']
     category = data['category']
     amount = data['amount']
-    expense_date = data['expense_date']
     description = data.get('description', '')  # Optional
 
     # Step 1: Check if the user_id exists in the users table
@@ -467,11 +465,12 @@ def add_expense():
     # Step 2: Insert the expense into the expenses table
     expense_id = str(uuid.uuid4())
     created_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    updated_at = created_at  # Use the same timestamp for both created_at and updated_at
 
     cursor.execute("""
-        INSERT INTO expenses (expense_id, user_id, category, expense_date, amount, description, created_at)
+        INSERT INTO expenses (expense_id, user_id, category, amount, description, created_at, updated_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (expense_id, user_id, category, expense_date, amount, description, created_at))
+    """, (expense_id, user_id, category, amount, description, created_at, updated_at))
     
     conn.commit()
     cursor.close()
@@ -495,10 +494,10 @@ def get_expenses(user_id):
         expense_list.append({
             "expense_id": expense[0],
             "category": expense[2],
-            "expense_date": expense[3],
             "amount": expense[4],
             "description": expense[5],
-            "created_at": expense[6]
+            "created_at": expense[6],
+            "updated_at": expense[7]  # Add updated_at field to the response
         })
 
     return jsonify(expense_list)
@@ -528,14 +527,12 @@ def get_expenses_total(user_id):
 
     return jsonify(total_expenses)
 
-# PUT /expenses/<expense_id> (Update an Expense)
 @app.route('/expenses/<expense_id>', methods=['PUT'])
 def update_expense(expense_id):
     data = request.get_json()
-    category = data.get('category')
-    amount = data.get('amount')
-    expense_date = data.get('expense_date')
-    description = data.get('description')
+    category = data.get('category', None)  # Default to None if not provided
+    amount = data.get('amount', None)
+    description = data.get('description', None)
 
     # Step 1: Check if the expense_id exists in the expenses table
     conn = get_db_connection()
@@ -549,14 +546,14 @@ def update_expense(expense_id):
         return jsonify({"error": "Expense not found"}), 404
 
     # Step 2: Update the expense in the expenses table
-    if category:
-        cursor.execute("UPDATE expenses SET category = %s WHERE expense_id = %s", (category, expense_id))
-    if amount:
-        cursor.execute("UPDATE expenses SET amount = %s WHERE expense_id = %s", (amount, expense_id))
-    if expense_date:
-        cursor.execute("UPDATE expenses SET expense_date = %s WHERE expense_id = %s", (expense_date, expense_id))
-    if description:
-        cursor.execute("UPDATE expenses SET description = %s WHERE expense_id = %s", (description, expense_id))
+    updated_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if category is not None:
+        cursor.execute("UPDATE expenses SET category = %s, updated_at = %s WHERE expense_id = %s", (category, updated_at, expense_id))
+    if amount is not None:
+        cursor.execute("UPDATE expenses SET amount = %s, updated_at = %s WHERE expense_id = %s", (amount, updated_at, expense_id))
+    if description is not None:
+        cursor.execute("UPDATE expenses SET description = %s, updated_at = %s WHERE expense_id = %s", (description, updated_at, expense_id))
 
     conn.commit()
     cursor.close()
