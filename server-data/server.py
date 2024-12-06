@@ -58,8 +58,10 @@ def generate_random_id(length=36):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
+""" START OF USER ACCOUNT API ENDPOINTS """
+
 # API endpoint for registration
-@app.route('/register', methods=['POST'])
+@app.route('/user/account/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -103,7 +105,7 @@ def register():
     return jsonify({'message': 'User registered successfully!'}), 201
 
 # API endpoint for login
-@app.route('/login', methods=['POST'])
+@app.route('/user/account/login', methods=['POST'])
 def login():
     data = request.get_json()
 
@@ -130,7 +132,7 @@ def login():
     return jsonify({'message': 'Login successful', 'user_id': user_id}), 200
 
 # API endpoint to update user info (email, phone, password)
-@app.route('/update', methods=['PUT'])
+@app.route('/user/account/update', methods=['PUT'])
 def update_user():
     data = request.get_json()
 
@@ -183,7 +185,7 @@ def update_user():
     return jsonify({'message': 'User information updated successfully.'}), 200
 
 # API endpoint to delete a user account
-@app.route('/delete', methods=['DELETE'])
+@app.route('/user/account/delete', methods=['DELETE'])
 def delete_user():
     data = request.get_json()
 
@@ -224,8 +226,12 @@ def delete_user():
 
     return jsonify({'message': 'User account and all related data deleted successfully. Thankyou for using EzTrip!, Sorry we have to see you go :('}), 200
 
+""" END OF USER ACCOUNT API ENDPOINTS """
+
+""" START OF ITINERARIES API ENDPOINTS """
+
 # API endpoint to generate itineraries and save to the database
-@app.route('/itineraries', methods=['POST'])
+@app.route('/features/itineraries', methods=['POST'])
 def generate_and_save_itinerary():
     data = request.get_json()
 
@@ -289,7 +295,7 @@ def generate_and_save_itinerary():
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to get all itineraries for a specific user
-@app.route('/itineraries/user/<user_id>', methods=['GET'])
+@app.route('/features/itineraries/user/<user_id>', methods=['GET'])
 def get_user_itineraries(user_id):
     try:
         # Connect to the database
@@ -324,7 +330,7 @@ def get_user_itineraries(user_id):
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to delete an itinerary by UUID
-@app.route('/itineraries/<uuid:id>', methods=['DELETE'])
+@app.route('/features/itineraries/<uuid:id>', methods=['DELETE'])
 def delete_itinerary(id):
     try:
         # Convert the UUID object to string if needed (for database operations)
@@ -349,6 +355,10 @@ def delete_itinerary(id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+""" END OF ITINERARIES API ENDPOINTS """
+
+""" START OF REVIEWS API ENDPOINTS """
 
 # Function to analyze sentiment
 def analyze_sentiment(text):
@@ -369,7 +379,7 @@ def translate_to_english(text):
     return translated.text
 
 # POST /reviews (Submit Review)
-@app.route('/reviews', methods=['POST'])
+@app.route('/places/reviews', methods=['POST'])
 def submit_review():
     data = request.get_json()
     user_id = data['user_id']
@@ -424,7 +434,7 @@ def submit_review():
     return jsonify({"message": "Review submitted successfully", "review_id": review_id}), 201
 
 # GET /reviews/{place_type}/{place_id} (Get Reviews for a Place)
-@app.route('/reviews/<place_type>/<place_id>', methods=['GET'])
+@app.route('/places/reviews/<place_type>/<place_id>', methods=['GET'])
 def get_reviews(place_type, place_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -469,7 +479,11 @@ def get_reviews(place_type, place_id):
     
     return jsonify(review_list)
 
-@app.route('/expenses', methods=['POST'])
+""" END OF REVIEWS API ENDPOINTS """
+
+""" START OF EXPENSES API ENDPOINTS """
+
+@app.route('/user/expenses', methods=['POST'])
 def add_expense():
     data = request.get_json()
     user_id = data['user_id']
@@ -505,7 +519,7 @@ def add_expense():
     return jsonify({"message": "Expense added successfully", "expense_id": expense_id}), 201
 
 # GET /expenses/<user_id> (Get All Expenses for a User)
-@app.route('/expenses/<user_id>', methods=['GET'])
+@app.route('/user/expenses/<user_id>', methods=['GET'])
 def get_expenses(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -528,8 +542,8 @@ def get_expenses(user_id):
 
     return jsonify(expense_list)
 
-# GET /expenses/total/<user_id> (Get Total Expenses by Category)
-@app.route('/expenses/total/<user_id>', methods=['GET'])
+# GET /user/expenses/total/<user_id> (Get Total Expenses by Category)
+@app.route('/user/expenses/total/<user_id>', methods=['GET'])
 def get_expenses_total(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -553,7 +567,7 @@ def get_expenses_total(user_id):
 
     return jsonify(total_expenses)
 
-@app.route('/expenses/<expense_id>', methods=['PUT'])
+@app.route('/user/expenses/<expense_id>', methods=['PUT'])
 def update_expense(expense_id):
     data = request.get_json()
     category = data.get('category', None)  # Default to None if not provided
@@ -608,6 +622,8 @@ def delete_expense(expense_id):
     conn.close()
 
     return jsonify({"message": "Expense deleted successfully"})
+
+""" END OF EXPENSES API ENDPOINTS """
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
