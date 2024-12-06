@@ -237,7 +237,7 @@ def generate_and_save_itinerary():
 
     user_id = data.get('user_id')  # Get user_id from the request
     budget = data.get('budget')
-    city = data.get('city')
+    city = data.get('city', '')
 
     if not user_id or not budget:
         return jsonify({'error': 'User ID and budget are required'}), 400
@@ -534,10 +534,10 @@ def get_expenses(user_id):
         expense_list.append({
             "expense_id": expense[0],
             "category": expense[2],
-            "amount": expense[4],
-            "description": expense[5],
-            "created_at": expense[6],
-            "updated_at": expense[7]  # Add updated_at field to the response
+            "amount": expense[3],
+            "description": expense[4],
+            "created_at": expense[5],
+            "updated_at": expense[6]  # Add updated_at field to the response
         })
 
     return jsonify(expense_list)
