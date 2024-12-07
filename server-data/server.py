@@ -8,6 +8,8 @@ import uuid
 from textblob import TextBlob
 from googletrans import Translator
 import datetime
+import pandas as pd
+from config.sql_engine import engine
 
 import re
 import os
@@ -624,6 +626,88 @@ def delete_expense(expense_id):
     return jsonify({"message": "Expense deleted successfully"})
 
 """ END OF EXPENSES API ENDPOINTS """
+
+""" START OF GET DATA ENDPOINTS """
+
+# Endpoint to get all items for each category
+@app.route('/places/<category>/all', methods=['GET'])
+def get_all_category_items(category):
+    """
+    API endpoint to retrieve all items based on category (accommodations, tours, or culinaries).
+
+    Args:
+        category (str): Category for which all items should be fetched. Options: 'accommodations', 'tours', 'culinaries'.
+
+    Returns:
+        JSON: A dictionary containing all items for the specified category.
+    """
+    try:
+        # Define the query to fetch all items from the specified category
+        if category == 'accommodations':
+            query = "SELECT * FROM accommodations;"
+        elif category == 'tours':
+            query = "SELECT * FROM tours;"
+        elif category == 'culinaries':
+            query = "SELECT * FROM culinaries;"
+        else:
+            return jsonify({"error": "Invalid category provided."}), 400
+
+        # Query the database to get all items for the specified category
+        items_df = pd.read_sql(query, engine)
+
+        if items_df.empty:
+            return jsonify({"message": f"No items found in category '{category}'."}), 404
+
+        # Convert the DataFrame to a dictionary
+        items = items_df.to_dict(orient='records')
+
+        return jsonify({"items": items}), 200
+
+    except Exception as e:
+        # Log and handle any unexpected errors
+        app.logger.error(f"Error in /{category}/all endpoint: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error."}), 500
+
+# API endpoint for getting random items based on category
+@app.route('/places/<category>/random', methods=['GET'])
+def get_random_category_items(category):
+    """
+    API endpoint to retrieve 10 random items based on category (accommodations, tours, or culinaries).
+
+    Args:
+        category (str): Category for which random items should be fetched. Options: 'accommodations', 'tours', 'culinaries'.
+
+    Returns:
+        JSON: A dictionary containing the random items for the specified category.
+    """
+    try:
+        # Define the query to fetch all items from the specified category
+        if category == 'accommodations':
+            query = "SELECT * FROM accommodations;"
+        elif category == 'tours':
+            query = "SELECT * FROM tours;"
+        elif category == 'culinaries':
+            query = "SELECT * FROM culinaries;"
+        else:
+            return jsonify({"error": "Invalid category provided."}), 400
+
+        # Query the database to get all items for the specified category
+        items_df = pd.read_sql(query, engine)
+
+        if items_df.empty:
+            return jsonify({"message": f"No items found in category '{category}'."}), 404
+
+        # Select 10 random items using Python's random.sample() method
+        random_items = random.sample(items_df.to_dict(orient='records'), 10) if len(items_df) >= 10 else items_df.to_dict(orient='records')
+
+        return jsonify({"items": random_items}), 200
+
+    except Exception as e:
+        # Log and handle any unexpected errors
+        app.logger.error(f"Error in /{category}/random endpoint: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error."}), 500
+
+""" END OF GET DATA ENDPOINTS """
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
