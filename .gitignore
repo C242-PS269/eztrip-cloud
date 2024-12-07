@@ -1,9 +1,7 @@
 __pycache__/
-data/
 
 *.pyc
 *.pyo
-*log
 *.json
 
 .env
