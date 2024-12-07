@@ -51,10 +51,6 @@ def get_tours():
             # Convert the dataframe to JSON
             result = recommendations.to_dict(orient='records')
 
-            # Pretty print and save to file
-            with open('tours.json', 'w') as f:
-                json.dump(result, f, indent=4)  # Pretty print with indentation
-
             # Return the recommendations in the response
             return jsonify({"recommendations": result}), 200
         else:
@@ -87,10 +83,6 @@ def get_visited_recommendations():
         recommendations = config.preprocessing_tour.visited_tour_recommendations(tour_name, city_filter, max_price)
 
         if recommendations:
-            # Pretty print and save the result to a file
-            with open('visited.json', 'w') as f:
-                json.dump(recommendations, f, indent=4)  # Pretty print with indentation
-
             # Return the recommendations in the response
             return jsonify({"recommendations": recommendations}), 200
         else:
@@ -122,11 +114,6 @@ def get_accomodations():
         if not recommendations.empty:
             # Convert the dataframe to JSON
             result = recommendations.to_dict(orient='records')
-
-            # Pretty print and save to file
-            with open('accomodations.json', 'w') as f:
-                json.dump(result, f, indent=4)  # Pretty print with indentation
-
             # Return the recommendations in the response
             return jsonify({"accomodations": result}), 200
         else:
@@ -167,10 +154,6 @@ def get_visited_accommodation_recommendations():
         if isinstance(recommendations, dict) and 'error' in recommendations:
             return jsonify(recommendations), 404
 
-        # If recommendations are available, save to JSON file
-        with open('accomodations.json', 'w') as f:
-            json.dump(recommendations, f, indent=4)  # Pretty print with indentation
-
         # Return the recommendations in the response
         return jsonify({"accomodations": recommendations}), 200
 
@@ -203,10 +186,6 @@ def get_culinaries():
         if not recommendations.empty:
             # Convert the dataframe to JSON
             result = recommendations.to_dict(orient='records')
-
-            # Pretty print and save to file
-            with open('culinaries.json', 'w') as f:
-                json.dump(result, f, indent=4)  # Pretty print with indentation
                 
             return jsonify({"culinaries": result}), 200
         else:
@@ -241,10 +220,6 @@ def get_similar_culinary_recommendations():
         recommendations = config.preprocessing_culinary.visited_culinary_recommendations(culinary_name, city_filter, max_price)
 
         if recommendations:
-            # Save the result to a file for reference
-            with open('visited_culinary_recommendations.json', 'w') as f:
-                json.dump(recommendations, f, indent=4)  # Pretty print with indentation
-
             # Return the recommendations in the response
             return jsonify({"recommendations": recommendations}), 200
         else:
@@ -288,10 +263,6 @@ def get_itineraries():
         # Generate the itinerary
         try:
             itinerary = config.generate_itinerary.generate_itineraries(user_budget, city)
-            
-            # Pretty print and save to file
-            with open('itineraries.json', 'w') as f:
-                json.dump(itinerary, f, indent=4)  # Pretty print with indentation
 
         except Exception as e:
             return jsonify({"error": "Failed to generate itinerary due to internal error."}), 500
