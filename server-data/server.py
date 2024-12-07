@@ -1,20 +1,21 @@
 # Import the required libraries
 import mysql.connector
+import pandas as pd
+import datetime
 import requests
-import json
 import random
 import string
+import json
 import uuid
-from textblob import TextBlob
-from googletrans import Translator
-import datetime
-
 import re
 import os
 
+from config.sql_engine import Config, test_connection, get_engine, engine
 from flask import Flask, request, jsonify
-from config.sql_engine import Config, test_connection, get_engine  # Import the config and functions
+from googletrans import Translator
 from dotenv import load_dotenv
+from textblob import TextBlob
+
 
 # Load environment variables
 load_dotenv()
@@ -624,6 +625,128 @@ def delete_expense(expense_id):
     return jsonify({"message": "Expense deleted successfully"})
 
 """ END OF EXPENSES API ENDPOINTS """
+
+""" START OF GET DATA ENDPOINTS """
+
+# Endpoint to get all items for each category
+@app.route('/places/<category>/all', methods=['GET'])
+def get_all_category_items(category):
+    """
+    API endpoint to retrieve all items based on category (accommodations, tours, or culinaries).
+
+    Args:
+        category (str): Category for which all items should be fetched. Options: 'accommodations', 'tours', 'culinaries'.
+
+    Returns:
+        JSON: A dictionary containing all items for the specified category.
+    """
+    try:
+        # Define the query to fetch all items from the specified category
+        if category == 'accommodations':
+            query = "SELECT * FROM accommodations;"
+        elif category == 'tours':
+            query = "SELECT * FROM tours;"
+        elif category == 'culinaries':
+            query = "SELECT * FROM culinaries;"
+        else:
+            return jsonify({"error": "Invalid category provided."}), 400
+
+        # Query the database to get all items for the specified category
+        items_df = pd.read_sql(query, engine)
+
+        if items_df.empty:
+            return jsonify({"message": f"No items found in category '{category}'."}), 404
+
+        # Convert the DataFrame to a dictionary
+        items = items_df.to_dict(orient='records')
+
+        return jsonify({"items": items}), 200
+
+    except Exception as e:
+        # Log and handle any unexpected errors
+        app.logger.error(f"Error in /{category}/all endpoint: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error."}), 500
+
+# API endpoint for getting random items based on category
+@app.route('/places/<category>/random', methods=['GET'])
+def get_random_category_items(category):
+    """
+    API endpoint to retrieve 10 random items based on category (accommodations, tours, or culinaries).
+
+    Args:
+        category (str): Category for which random items should be fetched. Options: 'accommodations', 'tours', 'culinaries'.
+
+    Returns:
+        JSON: A dictionary containing the random items for the specified category.
+    """
+    try:
+        # Define the query to fetch all items from the specified category
+        if category == 'accommodations':
+            query = "SELECT * FROM accommodations;"
+        elif category == 'tours':
+            query = "SELECT * FROM tours;"
+        elif category == 'culinaries':
+            query = "SELECT * FROM culinaries;"
+        else:
+            return jsonify({"error": "Invalid category provided."}), 400
+
+        # Query the database to get all items for the specified category
+        items_df = pd.read_sql(query, engine)
+
+        if items_df.empty:
+            return jsonify({"message": f"No items found in category '{category}'."}), 404
+
+        # Select 10 random items using Python's random.sample() method
+        random_items = random.sample(items_df.to_dict(orient='records'), 10) if len(items_df) >= 10 else items_df.to_dict(orient='records')
+
+        return jsonify({"items": random_items}), 200
+
+    except Exception as e:
+        # Log and handle any unexpected errors
+        app.logger.error(f"Error in /{category}/random endpoint: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error."}), 500
+    
+    # API endpoint to show details of a specific place based on category and UUID
+@app.route('/places/detail/<category>/<uuid:id>', methods=['GET'])
+def get_place_detail(category, id):
+    """
+    API endpoint to retrieve detailed information for a specific place based on its category and UUID.
+
+    Args:
+        category (str): Category of the place ('accommodations', 'tours', 'culinaries').
+        id (uuid): The unique UUID identifier for the place.
+
+    Returns:
+        JSON: A dictionary containing the detailed information of the specified place.
+    """
+    try:
+        # Validate the category
+        if category == 'accommodations':
+            query = f"SELECT * FROM accommodations WHERE id = '{id}';"
+        elif category == 'tours':
+            query = f"SELECT * FROM tours WHERE id = '{id}';"
+        elif category == 'culinaries':
+            query = f"SELECT * FROM culinaries WHERE id = '{id}';"
+        else:
+            return jsonify({"error": "Invalid category provided."}), 400
+
+        # Query the database to get the detailed information of the place
+        place_df = pd.read_sql(query, engine)
+
+        if place_df.empty:
+            return jsonify({"message": f"No details found for the {category} with ID {id}."}), 404
+
+        # Convert the DataFrame to a dictionary (JSON format)
+        place_detail = place_df.to_dict(orient='records')[0]  # Extract the first record as there's only one UUID
+
+        return jsonify({"place_detail": place_detail}), 200
+
+    except Exception as e:
+        # Log and handle any unexpected errors
+        app.logger.error(f"Error in /places/detail/{category}/{id} endpoint: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error."}), 500
+
+""" END OF GET DATA ENDPOINTS """
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)

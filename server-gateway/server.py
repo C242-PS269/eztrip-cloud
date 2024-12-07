@@ -170,6 +170,40 @@ def delete_expense(expense_id):
 
 """ END OF EXPENSES APIs """
 
+""" START OF GET DATA APIs """
+
+# Get All Places by Category
+@app.route('/api/data/places/<category>/all', methods=['GET'])
+def gateway_get_all_places(category):
+    try:
+        # Forward the request to the data API to fetch all places for the given category
+        response = requests.get(f'{DATA_API_BASE_URL}/places/{category}/all')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get Random Places by Category
+@app.route('/api/data/places/<category>/random', methods=['GET'])
+def gateway_get_random_places(category):
+    try:
+        # Forward the request to the data API to fetch random places for the given category
+        response = requests.get(f'{DATA_API_BASE_URL}/places/{category}/random')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get Place Detail by Category and UUID
+@app.route('/api/data/places/detail/<category>/<uuid:id>', methods=['GET'])
+def gateway_get_place_detail(category, id):
+    try:
+        # Forward the request to the data API to fetch the details of the specific place
+        response = requests.get(f'{DATA_API_BASE_URL}/places/detail/{category}/{id}')
+        return jsonify(response.json()), response.status_code
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+""" END OF GET DATA APIs"""
+
 """ START OF MODEL APIs """
 
 @app.route('/api/model/recommendations/tours', methods=['POST'])
