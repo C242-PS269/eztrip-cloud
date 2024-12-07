@@ -64,29 +64,31 @@ def delete_user():
 @app.route('/api/data/features/itineraries', methods=['POST'])
 def generate_and_save_itinerary_recommendations():
     try:
-        # Forward the delete account request to the delete API
-        response = requests.delete(f'{DATA_API_BASE_URL}/features/itineraries', json=request.get_json())
+        # Forward the request to the backend API
+        response = requests.post(f'{DATA_API_BASE_URL}/features/itineraries', json=request.get_json())
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 500
-    
+        return jsonify({"error": f"Failed to forward the request: {str(e)}"}), 500
+
 # Get all itineraries by user
-@app.route('/api/data/itineraries/user/<int:user_id>', methods=['GET'])
+@app.route('/api/data/features/itineraries/user/<user_id>', methods=['GET'])
 def get_user_itineraries(user_id):
     try:
-        response = requests.get(f'{DATA_API_BASE_URL}/itineraries/user/{user_id}')
+        # Forward the request to the backend API
+        response = requests.get(f'{DATA_API_BASE_URL}/features/itineraries/user/{user_id}')
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to retrieve itineraries: {str(e)}"}), 500
 
 # Delete an itinerary by UUID
-@app.route('/api/data/itineraries/<uuid:id>', methods=['DELETE'])
+@app.route('/api/data/features/itineraries/<uuid:id>', methods=['DELETE'])
 def delete_itinerary(id):
     try:
-        response = requests.delete(f'{DATA_API_BASE_URL}/itineraries/{id}')
+        # Forward the delete request to the backend API
+        response = requests.delete(f'{DATA_API_BASE_URL}/features/itineraries/{id}')
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to delete itinerary: {str(e)}"}), 500
 
 """ END OF ITINERARIES APIs """
 

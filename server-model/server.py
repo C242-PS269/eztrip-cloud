@@ -52,7 +52,7 @@ def get_tours():
             result = recommendations.to_dict(orient='records')
 
             # Return the recommendations in the response
-            return jsonify({"recommendations": result}), 200
+            return jsonify({"tours": result}), 200
         else:
             return jsonify({"message": "No recommendations found."}), 404
     except Exception as e:
@@ -84,7 +84,7 @@ def get_visited_recommendations():
 
         if recommendations:
             # Return the recommendations in the response
-            return jsonify({"recommendations": recommendations}), 200
+            return jsonify({"tours": recommendations}), 200
         else:
             return jsonify({"message": "No recommendations found."}), 404
 
@@ -221,7 +221,7 @@ def get_similar_culinary_recommendations():
 
         if recommendations:
             # Return the recommendations in the response
-            return jsonify({"recommendations": recommendations}), 200
+            return jsonify({"culinaries": recommendations}), 200
         else:
             return jsonify({"message": "No recommendations found."}), 404
 
