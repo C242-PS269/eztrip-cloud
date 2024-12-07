@@ -47,7 +47,6 @@ CREATE TABLE itineraries (
     remaining_budget DECIMAL(10, 2) NOT NULL, -- Remaining budget after itinerary creation
     budget DECIMAL(10, 2) NOT NULL,     -- Original budget provided by the user
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the itinerary is created
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the itinerary is last updated
     FOREIGN KEY (user_id) REFERENCES users(id) 
 );
 
@@ -89,9 +88,10 @@ CREATE TABLE expenses (
     expense_id CHAR(36) PRIMARY KEY,          -- UUID primary key for expenses
     user_id VARCHAR(255) NOT NULL,                -- UUID foreign key to user table
     category VARCHAR(50),                     -- Category of the expense (e.g., food, transport)
-    expense_date DATE,                                -- Date of the expense
     amount DECIMAL(10, 2),                    -- Amount spent
     description TEXT,                         -- Description of the expense
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the expense is created
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for when the itinerary is last updated
     FOREIGN KEY (user_id) REFERENCES users(id)  -- Foreign key referencing user table
+    
 );

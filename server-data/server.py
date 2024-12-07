@@ -7,6 +7,7 @@ import string
 import uuid
 from textblob import TextBlob
 from googletrans import Translator
+import datetime
 
 import re
 import os
@@ -57,8 +58,10 @@ def generate_random_id(length=36):
     characters = string.ascii_letters + string.digits
     return ''.join(random.choice(characters) for _ in range(length))
 
+""" START OF USER ACCOUNT API ENDPOINTS """
+
 # API endpoint for registration
-@app.route('/register', methods=['POST'])
+@app.route('/user/account/register', methods=['POST'])
 def register():
     data = request.get_json()
 
@@ -102,7 +105,7 @@ def register():
     return jsonify({'message': 'User registered successfully!'}), 201
 
 # API endpoint for login
-@app.route('/login', methods=['POST'])
+@app.route('/user/account/login', methods=['POST'])
 def login():
     data = request.get_json()
 
@@ -129,7 +132,7 @@ def login():
     return jsonify({'message': 'Login successful', 'user_id': user_id}), 200
 
 # API endpoint to update user info (email, phone, password)
-@app.route('/update', methods=['PUT'])
+@app.route('/user/account/update', methods=['PUT'])
 def update_user():
     data = request.get_json()
 
@@ -139,7 +142,7 @@ def update_user():
     new_email = data.get('new_email')
     new_phone = data.get('new_phone')
 
-    # Validate data
+    # Validate required fields
     if not username or not current_password:
         return jsonify({'error': 'Username and current password are required.'}), 400
 
@@ -153,7 +156,20 @@ def update_user():
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
-    # Update user information
+    # Check for duplicate email and phone number if provided
+    if new_email:
+        cursor.execute("SELECT * FROM users WHERE email = %s", (new_email,))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Email address already in use.'}), 400
+
+    if new_phone:
+        cursor.execute("SELECT * FROM users WHERE phone_number = %s", (new_phone,))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Phone number already in use.'}), 400
+
+    # Update user information if the new data is provided
     if new_password:
         cursor.execute("UPDATE users SET password = %s WHERE username = %s", (new_password, username))
 
@@ -169,7 +185,7 @@ def update_user():
     return jsonify({'message': 'User information updated successfully.'}), 200
 
 # API endpoint to delete a user account
-@app.route('/delete', methods=['DELETE'])
+@app.route('/user/account/delete', methods=['DELETE'])
 def delete_user():
     data = request.get_json()
 
@@ -180,31 +196,48 @@ def delete_user():
     if not username or not password:
         return jsonify({'error': 'Username and password are required.'}), 400
 
-    # Find user by username
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Step 1: Find user by username
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
     if not user or user[3] != password:  # user[3] is the password field (plain-text comparison)
+        cursor.close()
         conn.close()
         return jsonify({'error': 'Invalid credentials.'}), 401
 
-    # Delete user from the database
-    cursor.execute("DELETE FROM users WHERE username = %s", (username,))
+    user_id = user[0]  # Assuming user[0] is the user_id
+
+    # Step 2: Delete related data from dependent tables
+    cursor.execute("DELETE FROM itineraries WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM accommodations_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM tours_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM culinary_reviews WHERE user_id = %s", (user_id,))
+    cursor.execute("DELETE FROM expenses WHERE user_id = %s", (user_id,))
+
+    # Step 3: Delete the user from the users table
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
+
+    cursor.close()
     conn.close()
 
-    return jsonify({'message': 'User account deleted successfully.'}), 200
+    return jsonify({'message': 'User account and all related data deleted successfully. Thankyou for using EzTrip!, Sorry we have to see you go :('}), 200
+
+""" END OF USER ACCOUNT API ENDPOINTS """
+
+""" START OF ITINERARIES API ENDPOINTS """
 
 # API endpoint to generate itineraries and save to the database
-@app.route('/itineraries', methods=['POST'])
+@app.route('/features/itineraries', methods=['POST'])
 def generate_and_save_itinerary():
     data = request.get_json()
 
     user_id = data.get('user_id')  # Get user_id from the request
     budget = data.get('budget')
-    city = data.get('city')
+    city = data.get('city', '')
 
     if not user_id or not budget:
         return jsonify({'error': 'User ID and budget are required'}), 400
@@ -262,7 +295,7 @@ def generate_and_save_itinerary():
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to get all itineraries for a specific user
-@app.route('/itineraries/user/<user_id>', methods=['GET'])
+@app.route('/features/itineraries/user/<user_id>', methods=['GET'])
 def get_user_itineraries(user_id):
     try:
         # Connect to the database
@@ -297,7 +330,7 @@ def get_user_itineraries(user_id):
         return jsonify({'error': str(e)}), 500
 
 # API endpoint to delete an itinerary by UUID
-@app.route('/itineraries/<uuid:id>', methods=['DELETE'])
+@app.route('/features/itineraries/<uuid:id>', methods=['DELETE'])
 def delete_itinerary(id):
     try:
         # Convert the UUID object to string if needed (for database operations)
@@ -322,135 +355,275 @@ def delete_itinerary(id):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+""" END OF ITINERARIES API ENDPOINTS """
 
-# Helper function to perform sentiment analysis and translation
-def analyze_sentiment_and_translate(review_text):
-    # Sentiment analysis using TextBlob
-    blob = TextBlob(review_text)
-    sentiment_score = blob.sentiment.polarity  # Positive, Neutral, Negative
-    
-    # Classify sentiment
-    if sentiment_score > 0:
-        sentiment = 'positive'
-    elif sentiment_score < 0:
-        sentiment = 'negative'
+""" START OF REVIEWS API ENDPOINTS """
+
+# Function to analyze sentiment
+def analyze_sentiment(text):
+    blob = TextBlob(text)
+    polarity = blob.sentiment.polarity
+
+    if polarity > 0.1:
+        return 'positive'
+    elif polarity < -0.1:
+        return 'negative'
     else:
-        sentiment = 'neutral'
-    
-    # Translate review to English if it's not already in English
+        return 'neutral'
+
+# Function to translate review to English (if needed)
+def translate_to_english(text):
     translator = Translator()
-    translated_review = translator.translate(review_text, src='auto', dest='en').text
-    
-    return sentiment, translated_review
+    translated = translator.translate(text, src='auto', dest='en')
+    return translated.text
 
-@app.route('/reviews/<category>', methods=['POST'])
-def submit_review(category):
+# POST /reviews (Submit Review)
+@app.route('/places/reviews', methods=['POST'])
+def submit_review():
     data = request.get_json()
-    
-    user_id = data.get('user_id')
-    rating = data.get('rating')
-    review = data.get('review')
-    
-    if not user_id or not rating or not review:
-        return jsonify({'error': 'User ID, rating, and review text are required'}), 400
+    user_id = data['user_id']
+    place_id = data['place_id']
+    place_type = data['place_type']
+    rating = data['rating']
+    reviews = data['reviews']
 
-    # Check if the user exists
+    # Step 1: Check if the user_id exists in the users table
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
-    conn.close()
     
     if not user:
-        return jsonify({'error': 'User not found. Please provide a valid user_id.'}), 404
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "User does not exist"}), 400
     
-    # Perform sentiment analysis and translation
-    sentiment, translated_review = analyze_sentiment_and_translate(review)
+    # Step 2: Translate review to English (if necessary)
+    translated_review = translate_to_english(reviews)
     
-    # Fetch username (assuming you have a way to fetch username using user_id)
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-    user = cursor.fetchone()
-    conn.close()
-    
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-    
-    username = user[0]
-    
-    # Generate unique review ID
+    # Step 3: Analyze sentiment of the translated review
+    sentiment = analyze_sentiment(translated_review)
+
+    # Step 4: Proceed with review submission
     review_id = str(uuid.uuid4())
-    
-    # Save the review to the appropriate table based on category
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    if category == 'tours':
-        cursor.execute("INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('tours_id'), rating, translated_review, sentiment))
-    elif category == 'accommodations':
-        cursor.execute("INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('accommodations_id'), rating, translated_review, sentiment))
-    elif category == 'culinaries':
-        cursor.execute("INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment) VALUES (%s, %s, %s, %s, %s, %s)",
-                       (review_id, user_id, data.get('culinaries_id'), rating, translated_review, sentiment))
+    if place_type == 'accommodations':
+        cursor.execute("""
+            INSERT INTO accommodations_reviews (id, user_id, accommodations_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
+    elif place_type == 'tours':
+        cursor.execute("""
+            INSERT INTO tours_reviews (id, user_id, tours_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
+    elif place_type == 'culinaries':
+        cursor.execute("""
+            INSERT INTO culinary_reviews (id, user_id, culinaries_id, rating, reviews, sentiment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (review_id, user_id, place_id, rating, translated_review, sentiment))
     else:
-        return jsonify({'error': 'Invalid category'}), 400
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Invalid place type"}), 400
     
     conn.commit()
+    cursor.close()
     conn.close()
     
-    return jsonify({'message': 'Review submitted successfully!'}), 201
+    return jsonify({"message": "Review submitted successfully", "review_id": review_id}), 201
 
-# API endpoint to get reviews (for Tours, Accommodations, or Culinaries)
-@app.route('/reviews/<category>/user/<user_id>', methods=['GET'])
-def get_reviews(category, user_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+# GET /reviews/{place_type}/{place_id} (Get Reviews for a Place)
+@app.route('/places/reviews/<place_type>/<place_id>', methods=['GET'])
+def get_reviews(place_type, place_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    if place_type == 'accommodations':
+        cursor.execute("""
+            SELECT ar.id, u.username, ar.rating, ar.reviews, ar.sentiment 
+            FROM accommodations_reviews ar
+            JOIN users u ON ar.user_id = u.id
+            WHERE ar.accommodations_id = %s
+        """, (place_id,))
+    elif place_type == 'tours':
+        cursor.execute("""
+            SELECT tr.id, u.username, tr.rating, tr.reviews, tr.sentiment 
+            FROM tours_reviews tr
+            JOIN users u ON tr.user_id = u.id
+            WHERE tr.tours_id = %s
+        """, (place_id,))
+    elif place_type == 'culinaries':
+        cursor.execute("""
+            SELECT cr.id, u.username, cr.rating, cr.reviews, cr.sentiment 
+            FROM culinary_reviews cr
+            JOIN users u ON cr.user_id = u.id
+            WHERE cr.culinaries_id = %s
+        """, (place_id,))
+    else:
+        return jsonify({"error": "Invalid place type"}), 400
+    
+    reviews = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    review_list = []
+    for review in reviews:
+        review_list.append({
+            "review_id": review[0],
+            "username": review[1],   # Show username instead of user_id
+            "rating": review[2],
+            "reviews": review[3],
+            "sentiment": review[4]
+        })
+    
+    return jsonify(review_list)
 
-        # Fetch reviews for the specific user and category
-        if category == 'tours':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM tours_reviews WHERE user_id = %s", (user_id,))
-        elif category == 'accommodations':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM accommodations_reviews WHERE user_id = %s", (user_id,))
-        elif category == 'culinaries':
-            cursor.execute("SELECT id, rating, reviews, sentiment FROM culinary_reviews WHERE user_id = %s", (user_id,))
-        else:
-            return jsonify({'error': 'Invalid category'}), 400
+""" END OF REVIEWS API ENDPOINTS """
 
-        reviews = cursor.fetchall()
+""" START OF EXPENSES API ENDPOINTS """
+
+@app.route('/user/expenses', methods=['POST'])
+def add_expense():
+    data = request.get_json()
+    user_id = data['user_id']
+    category = data['category']
+    amount = data['amount']
+    description = data.get('description', '')  # Optional
+
+    # Step 1: Check if the user_id exists in the users table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    
+    if not user:
+        cursor.close()
         conn.close()
+        return jsonify({"error": "User does not exist"}), 400
 
-        if not reviews:
-            return jsonify({'message': 'No reviews found for this user'}), 404
+    # Step 2: Insert the expense into the expenses table
+    expense_id = str(uuid.uuid4())
+    created_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    updated_at = created_at  # Use the same timestamp for both created_at and updated_at
 
-        # Prepare the list of reviews
-        review_list = []
-        for review in reviews:
-            review_data = {
-                'id': review[0],
-                'rating': review[1],
-                'review': review[2],
-                'sentiment': review[3],
-            }
+    cursor.execute("""
+        INSERT INTO expenses (expense_id, user_id, category, amount, description, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (expense_id, user_id, category, amount, description, created_at, updated_at))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-            # Fetch the username of the reviewer
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-            user = cursor.fetchone()
-            conn.close()
+    return jsonify({"message": "Expense added successfully", "expense_id": expense_id}), 201
 
-            review_data['username'] = user[0] if user else 'Unknown'
-            review_list.append(review_data)
+# GET /expenses/<user_id> (Get All Expenses for a User)
+@app.route('/user/expenses/<user_id>', methods=['GET'])
+def get_expenses(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE user_id = %s", (user_id,))
+    
+    expenses = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-        return jsonify({'reviews': review_list}), 200
+    expense_list = []
+    for expense in expenses:
+        expense_list.append({
+            "expense_id": expense[0],
+            "category": expense[2],
+            "amount": expense[3],
+            "description": expense[4],
+            "created_at": expense[5],
+            "updated_at": expense[6]  # Add updated_at field to the response
+        })
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify(expense_list)
 
+# GET /user/expenses/total/<user_id> (Get Total Expenses by Category)
+@app.route('/user/expenses/total/<user_id>', methods=['GET'])
+def get_expenses_total(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT category, SUM(amount) as total_amount
+        FROM expenses
+        WHERE user_id = %s
+        GROUP BY category
+    """, (user_id,))
+    
+    totals = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    total_expenses = []
+    for total in totals:
+        total_expenses.append({
+            "category": total[0],
+            "total_amount": total[1]
+        })
+
+    return jsonify(total_expenses)
+
+@app.route('/user/expenses/<expense_id>', methods=['PUT'])
+def update_expense(expense_id):
+    data = request.get_json()
+    category = data.get('category', None)  # Default to None if not provided
+    amount = data.get('amount', None)
+    description = data.get('description', None)
+
+    # Step 1: Check if the expense_id exists in the expenses table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE expense_id = %s", (expense_id,))
+    expense = cursor.fetchone()
+
+    if not expense:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Expense not found"}), 404
+
+    # Step 2: Update the expense in the expenses table
+    updated_at = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if category is not None:
+        cursor.execute("UPDATE expenses SET category = %s, updated_at = %s WHERE expense_id = %s", (category, updated_at, expense_id))
+    if amount is not None:
+        cursor.execute("UPDATE expenses SET amount = %s, updated_at = %s WHERE expense_id = %s", (amount, updated_at, expense_id))
+    if description is not None:
+        cursor.execute("UPDATE expenses SET description = %s, updated_at = %s WHERE expense_id = %s", (description, updated_at, expense_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Expense updated successfully"})
+
+# DELETE /expenses/<expense_id> (Delete an Expense)
+@app.route('/expenses/<expense_id>', methods=['DELETE'])
+def delete_expense(expense_id):
+    # Step 1: Check if the expense_id exists in the expenses table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM expenses WHERE expense_id = %s", (expense_id,))
+    expense = cursor.fetchone()
+
+    if not expense:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Expense not found"}), 404
+
+    # Step 2: Delete the expense from the expenses table
+    cursor.execute("DELETE FROM expenses WHERE expense_id = %s", (expense_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"message": "Expense deleted successfully"})
+
+""" END OF EXPENSES API ENDPOINTS """
 
 if __name__ == '__main__':
     app.run(host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'), debug=True)
