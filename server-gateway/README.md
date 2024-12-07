@@ -141,6 +141,7 @@ cURL:
 ```bash
 curl -X POST http://localhost:3000/api/data/features/itineraries -H "Content-Type: application/json" -d "{\"user_id\": \"xODpZq4mFEaTG6eGzy1dc7nk30iyD3fHrDmT\", \"budget\": 1000000, \"city\": \"Badung\"}"
 ```
+
 - Based On ```budget``` Only:
 ```bash
 curl -X POST http://localhost:3000/api/data/features/itineraries -H "Content-Type: application/json" -d "{\"user_id\": \"xODpZq4mFEaTG6eGzy1dc7nk30iyD3fHrDmT\", \"budget\": 1000000}"
@@ -549,6 +550,149 @@ Response (Success):
 ```json
 {
   "message": "Expense deleted successfully"
+}
+```
+## Get Data Management APIs Endpoints
+
+## API Endpoint: ```/api/data/places/<category>/all```
+
+Method: ```GET```
+
+cURL:
+
+- Tours
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/tours/all
+```
+
+- Accommodations
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/accommodations/all
+```
+
+- Culinaries:
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/culinaries/all
+```
+
+Response (Success) - Retrive All Data From Tables:
+```json
+{
+  "items": [
+    {
+      "address": "Jalan Raya Pasut",
+      "category": "Beach",
+      "city": "Tabanan",
+      "google_maps": "https://www.google.com/maps/place/Pantai+Pasut/data=!4m7!3m6!1s0x2dd23122e42d049b:0xb8644744b2f08ac3!8m2!3d-8.563438!4d115.0367423!16s%2Fg%2F11cmsv_ydb!19sChIJmwQt5CIx0i0Rw4rwskRHZLg?authuser=0&hl=en&rclk=1",
+      "id": "001b583e-ef93-4f10-8139-025dd37b97e0",
+      "name": "Pantai Pasut",
+      "price_wna": 15000.0,
+      "rating": 4.5
+    },
+    {
+      "address": "Jl. Kaliasem lingk.kelod kangin",
+      "category": "Tourist attraction",
+      "city": "Gianyar",
+      "google_maps": "https://www.google.com/maps/place/Kanto+Lampo+Waterfall/data=!4m7!3m6!1s0x2dd217ff9adc01a1:0xea08b2e84ad7ab23!8m2!3d-8.5321802!4d115.3312408!16s%2Fg%2F11lrkjx_fc!19sChIJoQHcmv8X0i0RI6vXSuiyCOo?authuser=0&hl=en&rclk=1",
+      "id": "00cacf23-0b33-49fa-8778-08735cd5a12e",
+      "name": "Kanto Lampo Waterfall",
+      "price_wna": 15000.0,
+      "rating": 4.4
+    },
+    ...
+  ]
+}
+```
+
+## API Endpoint: ```/api/data/places/<category>/random```
+
+Method: ```GET```
+
+cURL:
+
+- Tours
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/tours/random
+```
+
+- Accommodations
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/accommodations/random
+```
+
+- Culinaries:
+
+```bash
+curl -X GET http://localhost:3000/api/data/places/culinaries/random
+```
+
+Response (Success) - Retrive All Data From Tables, Randomly (LIMIT 10):
+```json
+{
+  "items": [
+    {
+      "address": "Jalan Raya Pasut",
+      "category": "Beach",
+      "city": "Tabanan",
+      "google_maps": "https://www.google.com/maps/place/Pantai+Pasut/data=!4m7!3m6!1s0x2dd23122e42d049b:0xb8644744b2f08ac3!8m2!3d-8.563438!4d115.0367423!16s%2Fg%2F11cmsv_ydb!19sChIJmwQt5CIx0i0Rw4rwskRHZLg?authuser=0&hl=en&rclk=1",
+      "id": "001b583e-ef93-4f10-8139-025dd37b97e0",
+      "name": "Pantai Pasut",
+      "price_wna": 15000.0,
+      "rating": 4.5
+    },
+    {
+      "address": "Jl. Kaliasem lingk.kelod kangin",
+      "category": "Tourist attraction",
+      "city": "Gianyar",
+      "google_maps": "https://www.google.com/maps/place/Kanto+Lampo+Waterfall/data=!4m7!3m6!1s0x2dd217ff9adc01a1:0xea08b2e84ad7ab23!8m2!3d-8.5321802!4d115.3312408!16s%2Fg%2F11lrkjx_fc!19sChIJoQHcmv8X0i0RI6vXSuiyCOo?authuser=0&hl=en&rclk=1",
+      "id": "00cacf23-0b33-49fa-8778-08735cd5a12e",
+      "name": "Kanto Lampo Waterfall",
+      "price_wna": 15000.0,
+      "rating": 4.4
+    },
+    ...
+  ]
+}
+```
+
+## API Endpoint: ```/api/data/places/detail/<category>/<uuid:id>```
+
+Method: ```GET```
+
+- Tours
+```bash
+curl -X GET http://localhost:3000/api/data/places/detail/tours/id
+```
+
+- Accommodations
+```bash
+curl -X GET http://localhost:3000/api/data/places/detail/accommodations/id
+```
+
+- Culinaries
+```bash
+curl -X GET http://localhost:3000/api/data/places/detail/culinaries/id
+```
+
+Response (Success):
+
+```json
+{
+  "place_detail": {
+    "address": "Jl. Kaliasem lingk.kelod kangin",
+    "category": "Tourist attraction",
+    "city": "Gianyar",
+    "google_maps": "https://www.google.com/maps/place/Kanto+Lampo+Waterfall/data=!4m7!3m6!1s0x2dd217ff9adc01a1:0xea08b2e84ad7ab23!8m2!3d-8.5321802!4d115.3312408!16s%2Fg%2F11lrkjx_fc!19sChIJoQHcmv8X0i0RI6vXSuiyCOo?authuser=0&hl=en&rclk=1",
+    "id": "00cacf23-0b33-49fa-8778-08735cd5a12e",
+    "name": "Kanto Lampo Waterfall",
+    "price_wna": 15000.0,
+    "rating": 4.4
+  }
 }
 ```
 
