@@ -1,6 +1,4 @@
-# Import required libraries
 import pandas as pd
-
 from config.sql_engine import engine
 
 # Load data from the database
@@ -9,7 +7,6 @@ culinary = pd.read_sql_query("SELECT name, price_wna, city FROM culinaries", eng
 accommodations = pd.read_sql_query("SELECT name, price_wna, city FROM accommodations", engine)
 
 def generate_itineraries(user_budget, city=None):
-
     """
     Generates an itinerary based on the user's budget, including tours, culinary experiences, and accommodation.
     
@@ -43,15 +40,11 @@ def generate_itineraries(user_budget, city=None):
             culinary_filtered = culinary
             accommodations_filtered = accommodations
 
-        tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget]
-        culinary_filtered = culinary_filtered[culinary_filtered['price_wna'] <= culinary_budget]
-        accommodations_filtered = accommodations_filtered[accommodations['price_wna'] <= accommodation_budget]
+        # Filter data based on budget
+        tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget].reset_index(drop=True)
+        culinary_filtered = culinary_filtered[culinary_filtered['price_wna'] <= culinary_budget].reset_index(drop=True)
+        accommodations_filtered = accommodations_filtered[accommodations_filtered['price_wna'] <= accommodation_budget].reset_index(drop=True)
         
-        # Reset index to ensure index alignment when applying the boolean mask
-        tours_filtered = tours_filtered.reset_index(drop=True)
-        culinary_filtered = culinary_filtered.reset_index(drop=True)
-        accommodations_filtered = accommodations_filtered.reset_index(drop=True)
-
         print(f"Filtered data: Tours: {len(tours_filtered)}, Culinary: {len(culinary_filtered)}, Accommodations: {len(accommodations_filtered)}")
 
         # Handle case when no valid options are found
