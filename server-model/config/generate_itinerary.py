@@ -42,6 +42,11 @@ def generate_itineraries(user_budget, city=None):
             tours_filtered = tours
             culinary_filtered = culinary
             accommodations_filtered = accommodations
+        
+        # Reset index to ensure index alignment when applying the boolean mask
+        tours_filtered = tours_filtered.reset_index(drop=True)
+        culinary_filtered = culinary_filtered.reset_index(drop=True)
+        accommodations_filtered = accommodations_filtered.reset_index(drop=True)
 
         # Budget filtering once per category
         tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget]
