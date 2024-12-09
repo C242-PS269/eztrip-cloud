@@ -2,7 +2,6 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from dotenv import load_dotenv
@@ -19,7 +18,6 @@ data_accommodation = pd.read_sql_query("SELECT * FROM accommodations", engine)
 
 # Define the preprocessing function
 def preprocess_accommodation_data(data):
-
     """
     Preprocess the accommodation data for input into the recommendation model.
 
@@ -38,7 +36,6 @@ def preprocess_accommodation_data(data):
     - encoded_city (np.array): The one-hot encoded city values.
     - data (pd.DataFrame): The original data with added preprocessed columns.
     """
-
     # Normalize price_wna and rating
     scaler = MinMaxScaler()
     data[['price_wna', 'rating']] = scaler.fit_transform(data[['price_wna', 'rating']])
@@ -61,7 +58,6 @@ print("Model input shape:", accommodation_recommendation.input_shape)  # Debuggi
 
 # Function to generate top 5 recommendations based on user input
 def accommodation_recommendations(user_input, top_n=5):
-
     """
     Generate accommodation recommendations based on user input.
 
@@ -78,7 +74,6 @@ def accommodation_recommendations(user_input, top_n=5):
     Returns:
     - pd.DataFrame: The top N recommended accommodations with selected columns.
     """
-
     # Normalize user input
     user_df = pd.DataFrame([{
         "price_wna": user_input["max_price"],
@@ -91,13 +86,22 @@ def accommodation_recommendations(user_input, top_n=5):
     scores = accommodation_recommendation.predict(X)
     data['score'] = scores.flatten()  # Add the scores to the data
 
+    # One-hot encode the city in user input
+    city_input_encoded = encoder_city.transform([[user_input["city"]]])
+
     # Filter data based on user criteria
     filtered_data = data[
         (data['rating'] >= min_rating_scaled) & 
-        (data['price_wna'] <= max_price_scaled) & 
-        (data['city'] == user_input['city'])  # Filter based on city
+        (data['price_wna'] <= max_price_scaled)
     ]
     
+    # Add the one-hot encoded city column to the filtered data
+    filtered_data['city'] = user_input['city']
+    filtered_data[encoder_city.categories_[0]] = city_input_encoded.flatten()
+
+    # Check available columns after filtering
+    print("Available columns after filtering:", filtered_data.columns)
+
     # If no accommodations meet the criteria, return an empty DataFrame
     if filtered_data.empty:
         print("No accommodations found based on the given criteria.")
@@ -120,7 +124,6 @@ def accommodation_recommendations(user_input, top_n=5):
 
 # Function to recommend similar accommodations
 def visited_accommodation_recommendations(accommodation_name, city_filter=None, max_price=None, top_n=5):
-
     """
     Recommend similar accommodations based on a previously visited accommodation.
 
@@ -138,37 +141,45 @@ def visited_accommodation_recommendations(accommodation_name, city_filter=None, 
     Returns:
     - list: The top N recommended accommodations as a list of dictionaries with selected columns.
     """
-
     # Ensure the accommodation exists in the data
     if accommodation_name not in data['name'].values:
         return {"error": f"Accommodation '{accommodation_name}' not found in data."}, 404
 
     # Feature extraction for similarity calculation
+    # Use the price_wna and rating columns along with encoded city columns
     features = np.hstack((encoded_city, data[['price_wna', 'rating']].values))
+
+    # Get the index of the accommodation the user has visited
     accommodation_idx = data[data['name'] == accommodation_name].index[0]
 
-    # Cosine similarity calculation
+    # Calculate cosine similarity between the selected accommodation and all others
     similarity_scores = cosine_similarity(features[accommodation_idx].reshape(1, -1), features).flatten()
     data['similarity'] = similarity_scores
 
-    # Handle optional filters for city and max_price
+    # Apply optional filters for city and max_price
     if max_price is not None:
         max_price = float(max_price)
 
-    filtered_data = data[data['name'] != accommodation_name]
+    filtered_data = data[data['name'] != accommodation_name]  # Exclude the visited accommodation
     
     if city_filter:
-        filtered_data = filtered_data[filtered_data['city'] == city_filter]
+        filtered_data = filtered_data[filtered_data['city'].str.lower() == city_filter.lower()]
+    
     if max_price is not None:
-        max_price_scaled = scaler.transform([[max_price, 0]])[0][0]
-        filtered_data = filtered_data[filtered_data['price_wna'] <= max_price_scaled]
+        filtered_data = filtered_data[filtered_data['price_wna'] <= max_price]
 
-    # Return original scale for price_wna and rating
+    # Return the price_wna and rating columns to their original scale
     if not filtered_data.empty:
         filtered_data[['price_wna', 'rating']] = scaler.inverse_transform(
             filtered_data[['price_wna', 'rating']]
         )
 
+    # Sort by similarity and return top N recommendations
     recommendations = filtered_data.nlargest(top_n, 'similarity') if not filtered_data.empty else pd.DataFrame()
 
-    return recommendations[['name', 'rating', 'price_wna', 'city']].to_dict(orient="records")
+    # Ensure the columns you're trying to return actually exist in filtered_data
+    available_columns = filtered_data.columns.tolist()
+    selected_columns = ['name', 'rating', 'price_wna', 'city']
+    selected_columns = [col for col in selected_columns if col in available_columns]
+
+    return recommendations[selected_columns].to_dict(orient="records")
