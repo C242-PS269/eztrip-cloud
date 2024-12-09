@@ -129,7 +129,7 @@ Method: ```POST```
 Example Body Request:
 ```json
 {   
-    user_id: xODpZq4mFEaTG6eGzy1dc7nk30iyD3fHrDmT
+    user_id: "xODpZq4mFEaTG6eGzy1dc7nk30iyD3fHrDmT",
     budget: 1000000,
     city: "Badung" (optional)
 }

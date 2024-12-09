@@ -32,63 +32,15 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 - **Framework**: FastAPI or Flask for Server & API development
 - **Relational Database**: MySQL
 
-#### Project Structures
-
-1. Prototype Server:
-    - Server using FastAPI:
-      ```
-        .
-        ├── README.md
-        ├── __pycache__
-        │   └── main.cpython-312.pyc
-        ├── app.log
-        ├── config
-        │   ├── __pycache__
-        │   │   ├── database.cpython-312.pyc
-        │   │   ├── logging.cpython-312.pyc
-        │   │   └── models.cpython-312.pyc
-        │   ├── database.py
-        │   ├── logging.py
-        │   └── models.py
-        ├── main.py
-        └── requirements.txt
-      ```
-    - Server using Flask
-      ```
-        .
-        ├── app
-        │   ├── __init__.py
-        │   ├── db.py
-        │   ├── logging.py
-        │   ├── models.py
-        │   ├── routes.py
-        │   ├── schemas.py
-        │   └── services.py
-        ├── requirements.txt
-        └── run.py
-      ```
-2. Machine Learning Services
-```
-N/A
-```
-4. User Data Services
-```
-N/A
-```
-6. Gateway Services
-```
-N/A
-```
-
 #### Servers & API Services Documentation
 
 <center>
 
 |No. | Services | Description | Links |
 |---|---|---|---|
-| 1 | Machine Learning Model Server & API Services | This server contains APIs for using machine learning models. | [Click here!]() |
-| 2 | Data Server & API Services | This server is used to manage user data and provide APIs for data-related operations. | [Click here!]() |
-| 3 | Gateway Server & API Services | This server acts as the main gateway to connect and manage all APIs from other servers. | [Click here!]() |
+| 1 | Machine Learning Model Server & API Services | This server contains APIs for using machine learning models. | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/main/server-model) |
+| 2 | Data Server & API Services | This server is used to manage user data and provide APIs for data-related operations. | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/main/server-data) |
+| 3 | Gateway Server & API Services | This server acts as the main gateway to connect and manage all APIs from other servers. | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/main/server-gateway) |
 
 </center>
 

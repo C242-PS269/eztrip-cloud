@@ -1,6 +1,4 @@
-# Import required libraries
 import pandas as pd
-
 from config.sql_engine import engine
 
 # Load data from the database
@@ -9,7 +7,6 @@ culinary = pd.read_sql_query("SELECT name, price_wna, city FROM culinaries", eng
 accommodations = pd.read_sql_query("SELECT name, price_wna, city FROM accommodations", engine)
 
 def generate_itineraries(user_budget, city=None):
-
     """
     Generates an itinerary based on the user's budget, including tours, culinary experiences, and accommodation.
     
@@ -22,7 +19,7 @@ def generate_itineraries(user_budget, city=None):
               along with the total cost and remaining budget.
     """
     if user_budget <= 0:
-            return {"error": "Budget must be greater than 0."}
+        return {"error": "Budget must be greater than 0."}
 
     try:
         print(f"Starting itinerary generation with budget: {user_budget}, city: {city}")
@@ -33,25 +30,25 @@ def generate_itineraries(user_budget, city=None):
         accommodation_budget = user_budget * 0.3
         print(f"Allocated budgets: Tour: {tour_budget}, Culinary: {culinary_budget}, Accommodation: {accommodation_budget}")
 
-        # Pre-filter data based on city (if given) and budget for all categories
+        # Normalize and clean up the city input (if any)
         if city:
-            tours_filtered = tours[tours['city'] == city]
-            culinary_filtered = culinary[culinary['city'] == city]
-            accommodations_filtered = accommodations[accommodations['city'] == city]
+            city = city.strip().lower()  # Strip spaces and convert to lowercase for case-insensitive comparison
+            print(f"Filtered by city: {city}")
+
+            # Pre-filter data based on city (if given)
+            tours_filtered = tours[tours['city'].str.lower() == city]
+            culinary_filtered = culinary[culinary['city'].str.lower() == city]
+            accommodations_filtered = accommodations[accommodations['city'].str.lower() == city]
         else:
+            # If no city is given, keep the entire dataset
             tours_filtered = tours
             culinary_filtered = culinary
             accommodations_filtered = accommodations
-        
-        # Reset index to ensure index alignment when applying the boolean mask
-        tours_filtered = tours_filtered.reset_index(drop=True)
-        culinary_filtered = culinary_filtered.reset_index(drop=True)
-        accommodations_filtered = accommodations_filtered.reset_index(drop=True)
 
-        # Budget filtering once per category
-        tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget]
-        culinary_filtered = culinary_filtered[culinary_filtered['price_wna'] <= culinary_budget]
-        accommodations_filtered = accommodations_filtered[accommodations['price_wna'] <= accommodation_budget]
+        # Filter data based on budget
+        tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget].reset_index(drop=True)
+        culinary_filtered = culinary_filtered[culinary_filtered['price_wna'] <= culinary_budget].reset_index(drop=True)
+        accommodations_filtered = accommodations_filtered[accommodations_filtered['price_wna'] <= accommodation_budget].reset_index(drop=True)
 
         print(f"Filtered data: Tours: {len(tours_filtered)}, Culinary: {len(culinary_filtered)}, Accommodations: {len(accommodations_filtered)}")
 
@@ -77,7 +74,7 @@ def generate_itineraries(user_budget, city=None):
         # Exclude free tours from further processing
         tours_filtered = tours_filtered[tours_filtered['price_wna'] > 0]
 
-        # Select one item from each category
+        # Select one item from each category if still within budget
         if not tours_filtered.empty:
             selected_tour = tours_filtered.iloc[0]
             itinerary["tour_1"] = {
