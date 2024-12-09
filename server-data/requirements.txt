@@ -1,0 +1,8 @@
+flask==3.1.0
+python-dotenv
+requests
+pandas
+textblob
+googletrans==4.0.0rc1
+mysql-connector-python
+sqlalchemy
