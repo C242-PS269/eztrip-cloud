@@ -49,7 +49,7 @@ def generate_itineraries(user_budget, city=None):
         tours_filtered = tours_filtered[tours_filtered['price_wna'] <= tour_budget].reset_index(drop=True)
         culinary_filtered = culinary_filtered[culinary_filtered['price_wna'] <= culinary_budget].reset_index(drop=True)
         accommodations_filtered = accommodations_filtered[accommodations_filtered['price_wna'] <= accommodation_budget].reset_index(drop=True)
-
+        
         print(f"Filtered data: Tours: {len(tours_filtered)}, Culinary: {len(culinary_filtered)}, Accommodations: {len(accommodations_filtered)}")
 
         # Handle case when no valid options are found
