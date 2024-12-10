@@ -3,9 +3,10 @@
   <img src="https://img.shields.io/badge/markdown-%23000000.svg?style=for-the-badge&logo=markdown&logoColor=white"/>
 </div>
 
+
 <div align=center>
   <h1>EzTrip: AI Travel Companion App in Your Hand!</h1>
-  <img src="https://github.com/user-attachments/assets/2f45acea-59d4-4d0c-a3c8-e73d17c3ed53"/>
+  <img src="https://github.com/user-attachments/assets/e5b0cbc4-ed88-47a1-8dc7-b686dc65533b"/>
 </div>
 <br>
 <div align=center>
