@@ -3,7 +3,6 @@
   <img src="https://img.shields.io/badge/markdown-%23000000.svg?style=for-the-badge&logo=markdown&logoColor=white"/>
 </div>
 
-
 <div align=center>
   <h1>EzTrip: AI Travel Companion App in Your Hand!</h1>
   <img src="https://github.com/user-attachments/assets/e5b0cbc4-ed88-47a1-8dc7-b686dc65533b"/>
@@ -19,6 +18,8 @@
     <h3>Back-End Servers and API Services Documentation</h3>
 </div>
 
+---
+
 #### Repository Overview
 
 <p align=justify>
@@ -30,8 +31,8 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 #### Tech Stacks
 
 - **Programming Language**: Python
-- **Framework**: FastAPI or Flask for Server & API development
-- **Relational Database**: MySQL
+- **Framework**: Flask for Servers & APIs development
+- **Relational Database**: MySQL 5.7
 
 #### Servers & API Services Documentation
 
@@ -52,14 +53,16 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 - **Database Services**: Cloud SQL & Firebase(Optional)
 - **Storage**: Cloud Storage
 
+---
+
 #### Contributing
 
 <div align=center>
 
-| Name  | Bangkit ID | Roles | University |
-|---|---|---|---|
-| Naufal Rahfi Anugerah | C254B4KY3294 | Project Lead, Cloud Architect & BackEnd Engineer | Universitas Mercu Buana |
-| Royan Sabila Rosyad Wahyudi | C550B4NY3971 | Project Manager, DevOps Engineer & BackEnd Engineer | Universitas Islam Negeri Syarif Hidayatullah Jakarta |
+| Name  | Bangkit ID | Roles | University | Working Branch |
+|---|---|---|---|---|
+| Naufal Rahfi Anugerah | C254B4KY3294 | Project Lead, Cloud Architect & BackEnd Engineer | Universitas Mercu Buana | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/cloud-branch-1) |
+| Royan Sabila Rosyad Wahyudi | C550B4NY3971 | Project Manager, DevOps Engineer & BackEnd Engineer | Universitas Islam Negeri Syarif Hidayatullah Jakarta | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/cloud-branch-2) | 
 
 </div>
 
@@ -74,6 +77,8 @@ There is <b>NO LICENSE</b> available yet as this project is still being used for
 - This project is currently part of the <a href="https://www.dicoding.com/programs/bangkit">Bangkit Academy led by Google, Tokopedia, Gojek, and Traveloka</a> program and is being developed by our team as part of the Capstone Project.
 - The primary purpose of this project is to fulfill the requirements of the <b>Bangkit Academy 2024 Batch 2</b> program and to demonstrate the technical and collaborative skills we have acquired during the program.
 - The project is not yet intended for open-source release or commercial use. All rights and restrictions related to the project remain under the team's discretion until further notice.
+
+---
 
 #### Author
 
