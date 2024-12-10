@@ -105,11 +105,11 @@ def submit_review():
         return jsonify({"error": str(e)}), 500
 
 # Get Reviews for a Place
-@app.route('/api/data/reviews/<place_type>/<place_id>', methods=['GET'])
-def get_reviews(place_type, place_id):
+@app.route('/api/data/reviews/<place_id>', methods=['GET'])
+def get_reviews(place_id):
     try:
         # Forward the request to fetch reviews for a place
-        response = requests.get(f'{DATA_API_BASE_URL}/places/reviews/{place_type}/{place_id}')
+        response = requests.get(f'{DATA_API_BASE_URL}/places/reviews/{place_id}')
         return jsonify(response.json()), response.status_code
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
