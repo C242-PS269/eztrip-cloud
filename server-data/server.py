@@ -434,48 +434,73 @@ def submit_review():
     
     return jsonify({"message": "Review submitted successfully", "review_id": review_id}), 201
 
-# GET /reviews/{place_type}/{place_id} (Get Reviews for a Place)
-@app.route('/places/reviews/<place_type>/<place_id>', methods=['GET'])
-def get_reviews(place_type, place_id):
+# GET /reviews/reviews/{place_id} (Get Reviews for a Place)
+@app.route('/places/reviews/<place_id>', methods=['GET'])
+def get_reviews(place_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    if place_type == 'accommodations':
-        cursor.execute("""
-            SELECT ar.id, u.username, ar.rating, ar.reviews, ar.sentiment 
-            FROM accommodations_reviews ar
-            JOIN users u ON ar.user_id = u.id
-            WHERE ar.accommodations_id = %s
-        """, (place_id,))
-    elif place_type == 'tours':
-        cursor.execute("""
-            SELECT tr.id, u.username, tr.rating, tr.reviews, tr.sentiment 
-            FROM tours_reviews tr
-            JOIN users u ON tr.user_id = u.id
-            WHERE tr.tours_id = %s
-        """, (place_id,))
-    elif place_type == 'culinaries':
-        cursor.execute("""
-            SELECT cr.id, u.username, cr.rating, cr.reviews, cr.sentiment 
-            FROM culinary_reviews cr
-            JOIN users u ON cr.user_id = u.id
-            WHERE cr.culinaries_id = %s
-        """, (place_id,))
-    else:
-        return jsonify({"error": "Invalid place type"}), 400
-    
-    reviews = cursor.fetchall()
+
+    # Fetching reviews for accommodations
+    cursor.execute("""
+        SELECT ar.id, u.username, ar.rating, ar.reviews, ar.sentiment 
+        FROM accommodations_reviews ar
+        JOIN users u ON ar.user_id = u.id
+        WHERE ar.accommodations_id = %s
+    """, (place_id,))
+    accommodation_reviews = cursor.fetchall()
+
+    # Fetching reviews for tours
+    cursor.execute("""
+        SELECT tr.id, u.username, tr.rating, tr.reviews, tr.sentiment 
+        FROM tours_reviews tr
+        JOIN users u ON tr.user_id = u.id
+        WHERE tr.tours_id = %s
+    """, (place_id,))
+    tour_reviews = cursor.fetchall()
+
+    # Fetching reviews for culinaries
+    cursor.execute("""
+        SELECT cr.id, u.username, cr.rating, cr.reviews, cr.sentiment 
+        FROM culinary_reviews cr
+        JOIN users u ON cr.user_id = u.id
+        WHERE cr.culinaries_id = %s
+    """, (place_id,))
+    culinary_reviews = cursor.fetchall()
+
     cursor.close()
     conn.close()
-    
+
     review_list = []
-    for review in reviews:
+    
+    # Combine the results from all three places
+    for review in accommodation_reviews:
         review_list.append({
             "review_id": review[0],
             "username": review[1],   # Show username instead of user_id
             "rating": review[2],
             "reviews": review[3],
-            "sentiment": review[4]
+            "sentiment": review[4],
+            "type": "accommodation"
+        })
+
+    for review in tour_reviews:
+        review_list.append({
+            "review_id": review[0],
+            "username": review[1],   # Show username instead of user_id
+            "rating": review[2],
+            "reviews": review[3],
+            "sentiment": review[4],
+            "type": "tour"
+        })
+
+    for review in culinary_reviews:
+        review_list.append({
+            "review_id": review[0],
+            "username": review[1],   # Show username instead of user_id
+            "rating": review[2],
+            "reviews": review[3],
+            "sentiment": review[4],
+            "type": "culinary"
         })
     
     return jsonify(review_list)
