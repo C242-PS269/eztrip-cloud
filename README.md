@@ -13,7 +13,6 @@
     <img src="https://img.shields.io/badge/Flask-%23000.svg?&logo=flask&logoColor=white"/>
     <img src="https://img.shields.io/badge/Docker-%230db7ed.svg?&logo=docker&logoColor=white"/>
     <img src="https://img.shields.io/badge/Google_Cloud-%234285F4.svg?&logo=google-cloud&logoColor=white"/>
-    <img src="https://img.shields.io/badge/FastAPI-005571?&logo=fastapi"/>
     <img src="https://img.shields.io/badge/MySQL-4479A1.svg?&logo=mysql&logoColor=white"/>
     <h3>Back-End Servers and API Services Documentation</h3>
 </div>
@@ -49,8 +48,8 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 #### Deployment
 
 - **Environment**: [Google Cloud Platform](https://cloud.google.com)
-- **Server Deployments**: Cloud Run & App Engine
-- **Database Services**: Cloud SQL & Firebase(Optional)
+- **Server Deployments**: Cloud Run
+- **Database Services**: Cloud SQL
 - **Storage**: Cloud Storage
 
 ---
