@@ -1,4 +1,23 @@
-# Data Server & API Services Documentation
+<div align=justify>
+  <img src="https://img.shields.io/badge/EzTrip-3DDC84?style=for-the-badge"/>
+  <img src="https://img.shields.io/badge/markdown-%23000000.svg?style=for-the-badge&logo=markdown&logoColor=white"/>
+</div>
+
+<div align=center>
+  <h1>EzTrip: AI Travel Companion App in Your Hand!</h1>
+  <img src="https://github.com/user-attachments/assets/e5b0cbc4-ed88-47a1-8dc7-b686dc65533b"/>
+</div>
+<br>
+<div align=center>
+    <img src="https://img.shields.io/badge/Python-3670A0?&logo=python&logoColor=ffdd54"/>
+    <img src="https://img.shields.io/badge/Flask-%23000.svg?&logo=flask&logoColor=white"/>
+    <img src="https://img.shields.io/badge/Docker-%230db7ed.svg?&logo=docker&logoColor=white"/>
+    <img src="https://img.shields.io/badge/Google_Cloud-%234285F4.svg?&logo=google-cloud&logoColor=white"/>
+    <img src="https://img.shields.io/badge/MySQL-4479A1.svg?&logo=mysql&logoColor=white"/>
+    <h3>Data Server & API Services Documentation</h3>
+</div>
+
+---
 
 ### Overview
 
@@ -9,6 +28,8 @@ This documentation provides a guide to the available API endpoints for user acco
 ### Important Notes
 
 The APIs URL in documentation its still in local development ```http://localhost:5000/```, if the backend is already deployed, then the mobile development team just need to change the domain name that will be provided by cloud computing team.
+
+---
 
 ### API Endpoint: ```/register```
 
