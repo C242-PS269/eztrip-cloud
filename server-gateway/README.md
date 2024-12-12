@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/Docker-%230db7ed.svg?&logo=docker&logoColor=white"/>
     <img src="https://img.shields.io/badge/Google_Cloud-%234285F4.svg?&logo=google-cloud&logoColor=white"/>
     <img src="https://img.shields.io/badge/MySQL-4479A1.svg?&logo=mysql&logoColor=white"/>
-    <h1>Back-End Servers and API Services Documentation</h1>
+    <h3>Gateway Server & API Services Documentation</h3>
 </div>
 
 ## Overview
