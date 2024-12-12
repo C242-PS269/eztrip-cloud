@@ -30,8 +30,8 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 #### Tech Stacks
 
 - **Programming Language**: Python
-- **Framework**: FastAPI or Flask for Server & API development
-- **Relational Database**: MySQL
+- **Framework**: Flask for Servers & APIs development
+- **Relational Database**: MySQL 5.7
 
 #### Servers & API Services Documentation
 
@@ -48,8 +48,8 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 #### Deployment
 
 - **Environment**: [Google Cloud Platform](https://cloud.google.com)
-- **Server Deployments**: Cloud Run & App Engine
-- **Database Services**: Cloud SQL & Firebase(Optional)
+- **Server Deployments**: Cloud Run
+- **Database Services**: Cloud SQL
 - **Storage**: Cloud Storage
 
 ---
@@ -58,10 +58,10 @@ structure for the development, maintenance, and documentation of all EzTrip serv
 
 <div align=center>
 
-| Name  | Bangkit ID | Roles | University |
-|---|---|---|---|
-| Naufal Rahfi Anugerah | C254B4KY3294 | Project Lead, Cloud Architect & BackEnd Engineer | Universitas Mercu Buana |
-| Royan Sabila Rosyad Wahyudi | C550B4NY3971 | Project Manager, DevOps Engineer & BackEnd Engineer | Universitas Islam Negeri Syarif Hidayatullah Jakarta |
+| Name  | Bangkit ID | Roles | University | Working Branch |
+|---|---|---|---|---|
+| Naufal Rahfi Anugerah | C254B4KY3294 | Project Lead, Cloud Architect & BackEnd Engineer | Universitas Mercu Buana | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/cloud-branch-1) |
+| Royan Sabila Rosyad Wahyudi | C550B4NY3971 | Project Manager, DevOps Engineer & BackEnd Engineer | Universitas Islam Negeri Syarif Hidayatullah Jakarta | [Click here!](https://github.com/C242-PS269/eztrip-cloud/tree/cloud-branch-2) | 
 
 </div>
 
